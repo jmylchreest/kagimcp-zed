@@ -1,0 +1,21 @@
+[package]
+name = "kagi-mcp-server"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Kagi MCP Server for AI assistants"
+repository = "https://github.com/jmylchreest/kagimcp-zed"
+keywords = ["kagi", "mcp", "ai", "search", "summarizer"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "kagi-mcp-server"
+path = "src/main.rs"
+
+[dependencies]
+kagiapi = { path = "../kagiapi" }
+mcp-server = { path = "../mcp-server" }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["rt", "macros"] }
+async-trait = "0.1"
+clap = { version = "4.0", features = ["derive", "env"] }

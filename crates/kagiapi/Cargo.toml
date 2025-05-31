@@ -1,0 +1,20 @@
+[package]
+name = "kagiapi"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Rust client library for Kagi Search and Universal Summarizer APIs"
+repository = "https://github.com/jmylchreest/kagimcp-zed"
+keywords = ["kagi", "search", "api", "summarizer"]
+categories = ["api-bindings", "web-programming::http-client"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.0", features = ["rt"] }
+thiserror = "1.0"
+url = "2.4"
+
+[dev-dependencies]
+tokio-test = "0.4"

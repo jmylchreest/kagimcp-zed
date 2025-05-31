@@ -1,0 +1,20 @@
+[package]
+name = "mcp-server"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Generic Model Context Protocol (MCP) server library"
+repository = "https://github.com/jmylchreest/kagimcp-zed"
+keywords = ["mcp", "ai", "protocol", "server", "assistant"]
+categories = ["api-bindings", "asynchronous"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["rt", "macros", "io-std", "rt-multi-thread"] }
+async-trait = "0.1"
+thiserror = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
