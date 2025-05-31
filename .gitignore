@@ -20,3 +20,6 @@ Thumbs.db
 # Temporary files
 *~
 .#*
+
+# dist assets
+dist/

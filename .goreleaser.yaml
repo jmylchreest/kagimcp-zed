@@ -18,6 +18,7 @@ builds:
       - aarch64-apple-darwin
     flags:
       - --release
+    command: cargo-zigbuild
 
 archives:
   - name_template: >-

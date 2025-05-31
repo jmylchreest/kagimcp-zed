@@ -67,7 +67,7 @@ struct Args {
     /// Kagi API key (can also be set via KAGI_API_KEY environment variable)
     #[arg(long, env = "KAGI_API_KEY")]
     api_key: Option<String>,
-    
+
     /// Default summarizer engine
     #[arg(long, env = "KAGI_SUMMARIZER_ENGINE", default_value = "cecil")]
     summarizer_engine: String,
@@ -105,7 +105,7 @@ impl KagiMcpServer {
 
     async fn handle_search(&self, queries: &[Value]) -> Result<String, String> {
         let mut all_results = String::new();
-        
+
         for (index, query_value) in queries.iter().enumerate() {
             if let Some(query) = query_value.as_str() {
                 match self.client.search(query, Some(10)).await {
@@ -148,11 +148,21 @@ impl KagiMcpServer {
         output
     }
 
-    async fn handle_summarize(&self, url: &str, engine: Option<&str>, summary_type: Option<&str>, target_language: Option<&str>) -> Result<String, String> {
+    async fn handle_summarize(
+        &self,
+        url: &str,
+        engine: Option<&str>,
+        summary_type: Option<&str>,
+        target_language: Option<&str>,
+    ) -> Result<String, String> {
         let engine = self.parse_engine(engine);
         let summary_type = self.parse_summary_type(summary_type);
 
-        match self.client.summarize(url, Some(engine), Some(summary_type), target_language).await {
+        match self
+            .client
+            .summarize(url, Some(engine), Some(summary_type), target_language)
+            .await
+        {
             Ok(summary_data) => Ok(summary_data.output),
             Err(e) => Err(format!("Summarization failed: {}", e)),
         }
@@ -240,7 +250,9 @@ impl KagiMcpServer {
                         if let Some(args) = params.get("arguments") {
                             match name {
                                 "kagi_search_fetch" => {
-                                    if let Some(queries) = args.get("queries").and_then(|v| v.as_array()) {
+                                    if let Some(queries) =
+                                        args.get("queries").and_then(|v| v.as_array())
+                                    {
                                         match self.handle_search(queries).await {
                                             Ok(result) => McpResponse {
                                                 jsonrpc: "2.0".to_string(),
@@ -271,7 +283,8 @@ impl KagiMcpServer {
                                             result: None,
                                             error: Some(McpErrorResponse {
                                                 code: -32602,
-                                                message: "Missing or invalid 'queries' parameter".to_string(),
+                                                message: "Missing or invalid 'queries' parameter"
+                                                    .to_string(),
                                                 data: None,
                                             }),
                                         }
@@ -280,10 +293,20 @@ impl KagiMcpServer {
                                 "kagi_summarizer" => {
                                     if let Some(url) = args.get("url").and_then(|v| v.as_str()) {
                                         let engine = args.get("engine").and_then(|v| v.as_str());
-                                        let summary_type = args.get("summary_type").and_then(|v| v.as_str());
-                                        let target_language = args.get("target_language").and_then(|v| v.as_str());
-                                        
-                                        match self.handle_summarize(url, engine, summary_type, target_language).await {
+                                        let summary_type =
+                                            args.get("summary_type").and_then(|v| v.as_str());
+                                        let target_language =
+                                            args.get("target_language").and_then(|v| v.as_str());
+
+                                        match self
+                                            .handle_summarize(
+                                                url,
+                                                engine,
+                                                summary_type,
+                                                target_language,
+                                            )
+                                            .await
+                                        {
                                             Ok(result) => McpResponse {
                                                 jsonrpc: "2.0".to_string(),
                                                 id: request.id,
@@ -389,7 +412,7 @@ impl KagiMcpServer {
         loop {
             line.clear();
             let bytes_read = reader.read_line(&mut line).await?;
-            
+
             if bytes_read == 0 {
                 break; // EOF
             }
@@ -433,8 +456,10 @@ impl KagiMcpServer {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    
-    let api_key = args.api_key.or_else(|| env::var("KAGI_API_KEY").ok())
+
+    let api_key = args
+        .api_key
+        .or_else(|| env::var("KAGI_API_KEY").ok())
         .ok_or("KAGI_API_KEY must be provided via --api-key or environment variable")?;
 
     let default_engine = match args.summarizer_engine.as_str() {
@@ -443,7 +468,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "daphne" => SummarizerEngine::Daphne,
         "muriel" => SummarizerEngine::Muriel,
         _ => {
-            eprintln!("Warning: Unknown engine '{}', defaulting to 'cecil'", args.summarizer_engine);
+            eprintln!(
+                "Warning: Unknown engine '{}', defaulting to 'cecil'",
+                args.summarizer_engine
+            );
             SummarizerEngine::Cecil
         }
     };

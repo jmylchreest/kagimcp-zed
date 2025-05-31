@@ -113,13 +113,9 @@ Ask Zed's AI Assistant:
 ### Prerequisites
 
 ```bash
-# Install dependencies
-make install-deps
-# or manually:
+# Install Rust and required target
 rustup default stable
 rustup target add wasm32-unknown-unknown
-cargo install --locked cargo-zigbuild
-go install github.com/goreleaser/goreleaser@latest
 ```
 
 ### Local Development
@@ -130,34 +126,33 @@ git clone https://github.com/jmylchreest/kagimcp-zed.git
 cd kagimcp-zed
 
 # Build all components
-make build
-
-# Development build (faster)
-make dev
+cargo build --package kagiapi
+cargo build --package kagi-mcp-server --release
+cargo build --target wasm32-unknown-unknown --release
 
 # Run tests
-make test
+cargo test --workspace
+cargo fmt -- --check
+cargo clippy --workspace -- -D warnings
+cargo clippy --target wasm32-unknown-unknown -- -D warnings
 
-# Check component sizes
-make sizes
+# Test MCP server locally
+KAGI_API_KEY=your_key ./target/release/kagi-mcp-server
 ```
 
 ### Release Management
 
-```bash
-# Create snapshot (local testing)
-make snapshot
+Releases are fully automated through GitHub Actions:
 
-# Create tagged release
+```bash
+# Create and push a tag - that's it!
 git tag v0.1.0
 git push origin v0.1.0
-# GitHub Actions will automatically build and release
 
-# Test MCP server locally
-KAGI_API_KEY=your_key make run-mcp-server
-
-# Install extension for development
-make install-extension
+# GitHub Actions automatically:
+# 1. Builds cross-platform binaries with GoReleaser
+# 2. Creates GitHub release with assets
+# 3. Publishes Zed extension to registry
 ```
 
 ## Crate Documentation
@@ -203,10 +198,8 @@ This project uses [GoReleaser](https://goreleaser.com/) for automated builds and
 2. **GitHub Actions** automatically builds binaries for all platforms
 3. **Release created** with assets named: `kagi-mcp-server_{OS}_{ARCH}.{ext}`
 
-### Local Snapshots
-```bash
-make snapshot  # Creates local test builds in dist/
-```
+### Local Testing
+For local testing, just use standard cargo commands - no special tools needed.
 
 ### Cross-Platform Builds
 GoReleaser automatically builds for:

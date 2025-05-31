@@ -26,7 +26,7 @@ impl KagiModelContextExtension {
         _context_server_id: &ContextServerId,
     ) -> Result<String> {
         if let Some(path) = &self.cached_binary_path {
-            if fs::metadata(path).map_or(false, |stat| stat.is_file()) {
+            if fs::metadata(path).is_ok_and(|stat| stat.is_file()) {
                 return Ok(path.clone());
             }
         }
@@ -69,7 +69,7 @@ impl KagiModelContextExtension {
             .map_err(|err| format!("failed to create directory '{version_dir}': {err}"))?;
         let binary_path = format!("{version_dir}/{BINARY_NAME}");
 
-        if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+        if !fs::metadata(&binary_path).is_ok_and(|stat| stat.is_file()) {
             let file_kind = match platform {
                 zed::Os::Mac | zed::Os::Linux => zed::DownloadedFileType::GzipTar,
                 zed::Os::Windows => zed::DownloadedFileType::Zip,
@@ -116,7 +116,7 @@ impl zed::Extension for KagiModelContextExtension {
             serde_json::from_value(settings).map_err(|e| e.to_string())?;
 
         let mut env = vec![("KAGI_API_KEY".into(), settings.kagi_api_key)];
-        
+
         if let Some(engine) = settings.kagi_summarizer_engine {
             env.push(("KAGI_SUMMARIZER_ENGINE".into(), engine));
         }
