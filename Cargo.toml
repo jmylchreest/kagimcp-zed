@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "crates/kagiapi",
-    "crates/mcp-server", 
     "crates/kagi-mcp-server",
     "."
 ]

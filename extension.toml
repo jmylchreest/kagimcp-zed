@@ -1,9 +1,9 @@
 id = "kagimcp"
 name = "Kagi MCP Server"
 description = "Model Context Protocol Server for Kagi Search"
-version = "0.1.0"
+version = "0.0.1"
 schema_version = 1
-authors = ["jmylchreest <jmylchreest@users.noreply.github.com>"]
+authors = ["John Mylchreest <jmylchreest@users.noreply.github.com>"]
 repository = "https://github.com/jmylchreest/kagimcp-zed"
 
 [context_servers.kagimcp]

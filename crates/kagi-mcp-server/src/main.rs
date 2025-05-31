@@ -3,12 +3,62 @@
 //! This server implements the Model Context Protocol (MCP) to provide AI assistants
 //! with access to Kagi's search and Universal Summarizer APIs.
 
-use async_trait::async_trait;
 use clap::Parser;
 use kagiapi::{KagiClient, SummarizerEngine, SummaryType};
-use mcp_server::{McpServer, Tool, ToolHandler, ToolResult};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::env;
+use std::io;
+use thiserror::Error;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+#[derive(Error, Debug)]
+pub enum McpError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("Tool error: {0}")]
+    Tool(String),
+    #[error("Kagi API error: {0}")]
+    KagiApi(#[from] kagiapi::Error),
+}
+
+pub type McpResult<T> = Result<T, McpError>;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct McpRequest {
+    jsonrpc: String,
+    id: Value,
+    method: String,
+    params: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct McpResponse {
+    jsonrpc: String,
+    id: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    result: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<McpErrorResponse>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct McpErrorResponse {
+    code: i32,
+    message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    data: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Tool {
+    name: String,
+    description: String,
+    #[serde(rename = "inputSchema")]
+    input_schema: Value,
+}
 
 #[derive(Parser)]
 #[command(name = "kagi-mcp-server")]
@@ -23,12 +73,12 @@ struct Args {
     summarizer_engine: String,
 }
 
-struct KagiToolHandler {
+struct KagiMcpServer {
     client: KagiClient,
     default_engine: SummarizerEngine,
 }
 
-impl KagiToolHandler {
+impl KagiMcpServer {
     fn new(api_key: String, default_engine: SummarizerEngine) -> Self {
         Self {
             client: KagiClient::new(api_key),
@@ -53,7 +103,7 @@ impl KagiToolHandler {
         }
     }
 
-    async fn handle_search(&self, queries: &[Value]) -> ToolResult {
+    async fn handle_search(&self, queries: &[Value]) -> Result<String, String> {
         let mut all_results = String::new();
         
         for (index, query_value) in queries.iter().enumerate() {
@@ -74,10 +124,7 @@ impl KagiToolHandler {
             }
         }
 
-        Ok(vec![json!({
-            "type": "text",
-            "text": all_results
-        })])
+        Ok(all_results)
     }
 
     fn format_search_results(&self, query: &str, response: &kagiapi::SearchResponse) -> String {
@@ -101,45 +148,13 @@ impl KagiToolHandler {
         output
     }
 
-    async fn handle_summarize(&self, url: &str, engine: Option<&str>, summary_type: Option<&str>, target_language: Option<&str>) -> ToolResult {
+    async fn handle_summarize(&self, url: &str, engine: Option<&str>, summary_type: Option<&str>, target_language: Option<&str>) -> Result<String, String> {
         let engine = self.parse_engine(engine);
         let summary_type = self.parse_summary_type(summary_type);
 
         match self.client.summarize(url, Some(engine), Some(summary_type), target_language).await {
-            Ok(summary_data) => {
-                Ok(vec![json!({
-                    "type": "text",
-                    "text": summary_data.output
-                })])
-            }
+            Ok(summary_data) => Ok(summary_data.output),
             Err(e) => Err(format!("Summarization failed: {}", e)),
-        }
-    }
-}
-
-#[async_trait]
-impl ToolHandler for KagiToolHandler {
-    async fn handle_tool(&self, name: &str, args: Value) -> ToolResult {
-        match name {
-            "kagi_search_fetch" => {
-                if let Some(queries) = args.get("queries").and_then(|v| v.as_array()) {
-                    self.handle_search(queries).await
-                } else {
-                    Err("Missing or invalid 'queries' parameter".to_string())
-                }
-            }
-            "kagi_summarizer" => {
-                if let Some(url) = args.get("url").and_then(|v| v.as_str()) {
-                    let engine = args.get("engine").and_then(|v| v.as_str());
-                    let summary_type = args.get("summary_type").and_then(|v| v.as_str());
-                    let target_language = args.get("target_language").and_then(|v| v.as_str());
-                    
-                    self.handle_summarize(url, engine, summary_type, target_language).await
-                } else {
-                    Err("Missing 'url' parameter".to_string())
-                }
-            }
-            _ => Err(format!("Unknown tool: {}", name)),
         }
     }
 
@@ -193,6 +208,226 @@ impl ToolHandler for KagiToolHandler {
             },
         ]
     }
+
+    async fn handle_request(&self, request: McpRequest) -> McpResponse {
+        match request.method.as_str() {
+            "initialize" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id: request.id,
+                result: Some(json!({
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {}
+                    },
+                    "serverInfo": {
+                        "name": "kagi-mcp-server",
+                        "version": "0.1.0"
+                    }
+                })),
+                error: None,
+            },
+            "tools/list" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id: request.id,
+                result: Some(json!({
+                    "tools": self.get_tools()
+                })),
+                error: None,
+            },
+            "tools/call" => {
+                if let Some(params) = request.params {
+                    if let Some(name) = params.get("name").and_then(|v| v.as_str()) {
+                        if let Some(args) = params.get("arguments") {
+                            match name {
+                                "kagi_search_fetch" => {
+                                    if let Some(queries) = args.get("queries").and_then(|v| v.as_array()) {
+                                        match self.handle_search(queries).await {
+                                            Ok(result) => McpResponse {
+                                                jsonrpc: "2.0".to_string(),
+                                                id: request.id,
+                                                result: Some(json!({
+                                                    "content": [{
+                                                        "type": "text",
+                                                        "text": result
+                                                    }]
+                                                })),
+                                                error: None,
+                                            },
+                                            Err(e) => McpResponse {
+                                                jsonrpc: "2.0".to_string(),
+                                                id: request.id,
+                                                result: None,
+                                                error: Some(McpErrorResponse {
+                                                    code: -1,
+                                                    message: e,
+                                                    data: None,
+                                                }),
+                                            },
+                                        }
+                                    } else {
+                                        McpResponse {
+                                            jsonrpc: "2.0".to_string(),
+                                            id: request.id,
+                                            result: None,
+                                            error: Some(McpErrorResponse {
+                                                code: -32602,
+                                                message: "Missing or invalid 'queries' parameter".to_string(),
+                                                data: None,
+                                            }),
+                                        }
+                                    }
+                                }
+                                "kagi_summarizer" => {
+                                    if let Some(url) = args.get("url").and_then(|v| v.as_str()) {
+                                        let engine = args.get("engine").and_then(|v| v.as_str());
+                                        let summary_type = args.get("summary_type").and_then(|v| v.as_str());
+                                        let target_language = args.get("target_language").and_then(|v| v.as_str());
+                                        
+                                        match self.handle_summarize(url, engine, summary_type, target_language).await {
+                                            Ok(result) => McpResponse {
+                                                jsonrpc: "2.0".to_string(),
+                                                id: request.id,
+                                                result: Some(json!({
+                                                    "content": [{
+                                                        "type": "text",
+                                                        "text": result
+                                                    }]
+                                                })),
+                                                error: None,
+                                            },
+                                            Err(e) => McpResponse {
+                                                jsonrpc: "2.0".to_string(),
+                                                id: request.id,
+                                                result: None,
+                                                error: Some(McpErrorResponse {
+                                                    code: -1,
+                                                    message: e,
+                                                    data: None,
+                                                }),
+                                            },
+                                        }
+                                    } else {
+                                        McpResponse {
+                                            jsonrpc: "2.0".to_string(),
+                                            id: request.id,
+                                            result: None,
+                                            error: Some(McpErrorResponse {
+                                                code: -32602,
+                                                message: "Missing 'url' parameter".to_string(),
+                                                data: None,
+                                            }),
+                                        }
+                                    }
+                                }
+                                _ => McpResponse {
+                                    jsonrpc: "2.0".to_string(),
+                                    id: request.id,
+                                    result: None,
+                                    error: Some(McpErrorResponse {
+                                        code: -32601,
+                                        message: format!("Unknown tool: {}", name),
+                                        data: None,
+                                    }),
+                                },
+                            }
+                        } else {
+                            McpResponse {
+                                jsonrpc: "2.0".to_string(),
+                                id: request.id,
+                                result: None,
+                                error: Some(McpErrorResponse {
+                                    code: -32602,
+                                    message: "Missing arguments parameter".to_string(),
+                                    data: None,
+                                }),
+                            }
+                        }
+                    } else {
+                        McpResponse {
+                            jsonrpc: "2.0".to_string(),
+                            id: request.id,
+                            result: None,
+                            error: Some(McpErrorResponse {
+                                code: -32602,
+                                message: "Missing name parameter".to_string(),
+                                data: None,
+                            }),
+                        }
+                    }
+                } else {
+                    McpResponse {
+                        jsonrpc: "2.0".to_string(),
+                        id: request.id,
+                        result: None,
+                        error: Some(McpErrorResponse {
+                            code: -32602,
+                            message: "Missing parameters".to_string(),
+                            data: None,
+                        }),
+                    }
+                }
+            }
+            _ => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id: request.id,
+                result: None,
+                error: Some(McpErrorResponse {
+                    code: -32601,
+                    message: format!("Unknown method: {}", request.method),
+                    data: None,
+                }),
+            },
+        }
+    }
+
+    async fn run(&self) -> McpResult<()> {
+        let stdin = tokio::io::stdin();
+        let mut stdout = tokio::io::stdout();
+        let mut reader = BufReader::new(stdin);
+        let mut line = String::new();
+
+        loop {
+            line.clear();
+            let bytes_read = reader.read_line(&mut line).await?;
+            
+            if bytes_read == 0 {
+                break; // EOF
+            }
+
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            match serde_json::from_str::<McpRequest>(line) {
+                Ok(request) => {
+                    let response = self.handle_request(request).await;
+                    let response_json = serde_json::to_string(&response)?;
+                    stdout.write_all(response_json.as_bytes()).await?;
+                    stdout.write_all(b"\n").await?;
+                    stdout.flush().await?;
+                }
+                Err(e) => {
+                    let error_response = McpResponse {
+                        jsonrpc: "2.0".to_string(),
+                        id: json!(null),
+                        result: None,
+                        error: Some(McpErrorResponse {
+                            code: -32700,
+                            message: format!("Parse error: {}", e),
+                            data: None,
+                        }),
+                    };
+                    let response_json = serde_json::to_string(&error_response)?;
+                    stdout.write_all(response_json.as_bytes()).await?;
+                    stdout.write_all(b"\n").await?;
+                    stdout.flush().await?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[tokio::main]
@@ -213,9 +448,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let handler = KagiToolHandler::new(api_key, default_engine);
-    let server = McpServer::new("kagi-mcp-server", "0.1.0", handler);
-    
+    let server = KagiMcpServer::new(api_key, default_engine);
     server.run().await?;
     Ok(())
 }
