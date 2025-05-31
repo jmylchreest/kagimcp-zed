@@ -32,7 +32,7 @@ impl zed::Extension for KagiModelContextExtension {
             serde_json::from_value(settings).map_err(|e| e.to_string())?;
 
         let mut env = vec![("KAGI_API_KEY".into(), settings.kagi_api_key)];
-        
+
         if let Some(engine) = settings.kagi_summarizer_engine {
             env.push(("KAGI_SUMMARIZER_ENGINE".into(), engine));
         }
