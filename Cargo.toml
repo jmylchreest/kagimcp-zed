@@ -1,14 +1,10 @@
 [workspace]
-members = [
-    "crates/kagiapi",
-    "crates/kagi-mcp-server",
-    "."
-]
+members = ["crates/kagiapi", "crates/kagi-mcp-server", "."]
 resolver = "2"
 
 [package]
 name = "kagimcp-zed"
-version = "0.1.0"
+version = "0.0.1-SNAPSHOT-1748729044"
 edition = "2021"
 publish = false
 license = "MIT"

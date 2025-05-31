@@ -4,12 +4,14 @@ before:
   hooks:
     - rustup default stable
     - cargo install --locked cargo-zigbuild
+    - cargo install --locked cargo-edit
+    - cargo set-version --workspace {{ .Version }}
 
 builds:
   - id: kagi-mcp-server
     builder: rust
     binary: kagi-mcp-server
-    dir: crates/kagi-mcp-server
+    dir: .
     targets:
       - x86_64-unknown-linux-gnu
       - aarch64-unknown-linux-gnu
@@ -18,7 +20,7 @@ builds:
       - aarch64-apple-darwin
     flags:
       - --release
-    command: cargo-zigbuild
+      - --package=kagi-mcp-server
 
 archives:
   - name_template: >-
@@ -31,20 +33,23 @@ archives:
       - README.md
       - LICENSE
 
+sboms:
+  - artifacts: archive
+
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 
 snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-SNAPSHOT-{{ .CommitTimestamp }}"
 
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^ci:'
-      - '^chore:'
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
 
 release:
   github:
