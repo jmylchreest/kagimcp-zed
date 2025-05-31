@@ -38,7 +38,8 @@ This project is structured as a Cargo workspace with focused, lightweight crates
 ### 2. Install & Configure Extension
 
 1. **Install in Zed**: Extensions → Search "Kagi MCP Server" → Install
-2. **Configure**: Add to your Zed settings:
+2. **Automatic Setup**: The MCP server binary is automatically downloaded on first use
+3. **Configure**: Add to your Zed settings:
 
 ```json
 {
@@ -94,13 +95,18 @@ Ask Zed's AI Assistant:
 ## Troubleshooting
 
 **Extension not working?**
-1. Check `uv` is installed: `uv --version`
-2. Verify MCP server: `uvx kagimcp --help`  
-3. Confirm API key is valid and has permissions
+1. Check that the MCP server binary downloaded successfully (check Zed logs)
+2. Confirm API key is valid and has permissions
+3. Ensure you have internet access for initial binary download
 
 **API errors?**
 - Ensure you have Kagi Search API access (closed beta)
 - Double-check your API key in settings
+
+**Binary download issues?**
+- The extension automatically downloads the MCP server binary from GitHub releases
+- If download fails, check your internet connection and GitHub access
+- Binaries are cached locally for offline use after first download
 
 ## Development
 
