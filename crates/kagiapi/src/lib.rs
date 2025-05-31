@@ -4,7 +4,9 @@
 //! - Search API for web search results
 //! - Universal Summarizer API for content summarization
 //!
-//! Reference: https://help.kagi.com/kagi/api/search.html
+//! References:
+//! - https://help.kagi.com/kagi/api/search.html
+//! - https://help.kagi.com/kagi/api/summarizer.html
 //!
 //! # Example
 //!

@@ -1,6 +1,6 @@
-# Kagi MCP Server Extension for Zed
+# Kagi MCP Extension for Zed
 
-A Zed extension that integrates [Kagi's MCP Server](https://github.com/kagisearch/kagimcp) to provide AI-powered search and summarization capabilities directly in Zed's AI Assistant.
+A pure Rust implementation providing Kagi Search and Universal Summarizer integration for Zed's AI Assistant through the Model Context Protocol (MCP).
 
 ## Features
 
@@ -8,26 +8,34 @@ A Zed extension that integrates [Kagi's MCP Server](https://github.com/kagisearc
 - **📄 Content Summarization**: Summarize web pages, documents, and videos  
 - **⚙️ Configurable Engines**: Choose from multiple Kagi summarization engines
 - **🔒 Privacy-First**: Built on Kagi's privacy-focused infrastructure
+- **🦀 Pure Rust**: No Python dependencies, native performance
+- **📦 Modular**: Reusable libraries for the broader ecosystem
+
+## Architecture
+
+This project is structured as a Cargo workspace with multiple reusable crates:
+
+### 📚 **Libraries**
+- **`kagiapi`** - Pure Rust client for Kagi's APIs (search, summarizer)
+- **`mcp-server`** - Generic Model Context Protocol server framework
+- **`kagi-mcp-server`** - Kagi-specific MCP server implementation
+- **`kagimcp-zed`** - Zed extension (WebAssembly)
+
+### 🎯 **Benefits**
+- **Reusable**: Libraries can be used in other Rust projects
+- **Type-safe**: Strongly typed APIs with comprehensive error handling
+- **Performance**: Native Rust performance, no Python overhead
+- **Maintainable**: Clean separation of concerns
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Prerequisites
 
-**Install uv (Python package manager):**
-- **macOS/Linux**: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **Windows**: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+**Get Kagi API Access**:
+1. Request API access by emailing support@kagi.com (currently in closed beta)
+2. Get your API key from [Kagi Settings](https://kagi.com/settings?p=api)
 
-**Install Kagi MCP server:**
-```bash
-uvx kagimcp
-```
-
-### 2. Get Kagi API Access
-
-1. **Request API access**: Email support@kagi.com (currently in closed beta)
-2. **Get your API key**: Visit [Kagi Settings](https://kagi.com/settings?p=api)
-
-### 3. Install & Configure Extension
+### 2. Install & Configure Extension
 
 1. **Install in Zed**: Extensions → Search "Kagi MCP Server" → Install
 2. **Configure**: Add to your Zed settings:
@@ -37,7 +45,8 @@ uvx kagimcp
   "context_servers": {
     "kagimcp": {
       "settings": {
-        "kagi_api_key": "YOUR_KAGI_API_KEY_HERE"
+        "kagi_api_key": "YOUR_KAGI_API_KEY_HERE",
+        "kagi_summarizer_engine": "cecil"
       }
     }
   }
@@ -96,13 +105,59 @@ Ask Zed's AI Assistant:
 ## Development
 
 ```bash
-# Clone and build
+# Clone and build entire workspace
 git clone https://github.com/jmylchreest/kagimcp-zed.git
 cd kagimcp-zed
 ./build.sh
 
-# Test locally in Zed
+# Build individual components
+cargo build --package kagiapi          # API client library
+cargo build --package mcp-server       # MCP server framework  
+cargo build --package kagi-mcp-server  # Kagi MCP server binary
+cargo build --target wasm32-unknown-unknown  # Zed extension
+
+# Test MCP server directly
+KAGI_API_KEY=your_key ./target/release/kagi-mcp-server
+
+# Test extension in Zed
 # Extensions → Install Dev Extension → Select this directory
+```
+
+## Crate Documentation
+
+### 🔧 **kagiapi** 
+Pure Rust client for Kagi's APIs with async/await support.
+
+```rust
+use kagiapi::{KagiClient, SummarizerEngine, SummaryType};
+
+let client = KagiClient::new("your-api-key");
+let results = client.search("rust programming", Some(10)).await?;
+let summary = client.summarize("https://example.com", None, None, None).await?;
+```
+
+### 🖥️ **mcp-server**
+Generic framework for building MCP servers in Rust.
+
+```rust  
+use mcp_server::{McpServer, Tool, ToolHandler};
+
+struct MyHandler;
+impl ToolHandler for MyHandler { /* ... */ }
+
+let server = McpServer::new("my-server", "1.0.0", MyHandler);
+server.run().await?;
+```
+
+### 🔍 **kagi-mcp-server**
+Ready-to-use MCP server providing Kagi search and summarization tools.
+
+```bash
+# Run with environment variables
+KAGI_API_KEY=your_key kagi-mcp-server
+
+# Or with command line args
+kagi-mcp-server --api-key your_key --summarizer-engine muriel
 ```
 
 ## Links
