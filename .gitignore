@@ -1,0 +1,22 @@
+# Rust
+target/
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Extension build artifacts
+*.wasm
+
+# Temporary files
+*~
+.#*

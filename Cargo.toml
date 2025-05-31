@@ -1,0 +1,15 @@
+[package]
+name = "kagimcp"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = "1.0"
+schemars = "0.8"
+zed_extension_api = "0.5.0"
