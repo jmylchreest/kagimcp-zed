@@ -110,22 +110,54 @@ Ask Zed's AI Assistant:
 
 ## Development
 
+### Prerequisites
+
 ```bash
-# Clone and build entire workspace
+# Install dependencies
+make install-deps
+# or manually:
+rustup default stable
+rustup target add wasm32-unknown-unknown
+cargo install --locked cargo-zigbuild
+go install github.com/goreleaser/goreleaser@latest
+```
+
+### Local Development
+
+```bash
+# Clone and build
 git clone https://github.com/jmylchreest/kagimcp-zed.git
 cd kagimcp-zed
-./build.sh
 
-# Build individual components
-cargo build --package kagiapi          # API client library
-cargo build --package kagi-mcp-server  # MCP server binary
-cargo build --target wasm32-unknown-unknown  # Zed extension
+# Build all components
+make build
 
-# Test MCP server directly
-KAGI_API_KEY=your_key ./target/release/kagi-mcp-server
+# Development build (faster)
+make dev
 
-# Test extension in Zed
-# Extensions → Install Dev Extension → Select this directory
+# Run tests
+make test
+
+# Check component sizes
+make sizes
+```
+
+### Release Management
+
+```bash
+# Create snapshot (local testing)
+make snapshot
+
+# Create tagged release
+git tag v0.1.0
+git push origin v0.1.0
+# GitHub Actions will automatically build and release
+
+# Test MCP server locally
+KAGI_API_KEY=your_key make run-mcp-server
+
+# Install extension for development
+make install-extension
 ```
 
 ## Crate Documentation
@@ -162,11 +194,32 @@ KAGI_API_KEY=your_key kagi-mcp-server
 kagi-mcp-server --api-key your_key --summarizer-engine muriel
 ```
 
+## Release Process
+
+This project uses [GoReleaser](https://goreleaser.com/) for automated builds and releases:
+
+### Automated Releases
+1. **Tag a version**: `git tag v0.1.0 && git push origin v0.1.0`
+2. **GitHub Actions** automatically builds binaries for all platforms
+3. **Release created** with assets named: `kagi-mcp-server_{OS}_{ARCH}.{ext}`
+
+### Local Snapshots
+```bash
+make snapshot  # Creates local test builds in dist/
+```
+
+### Cross-Platform Builds
+GoReleaser automatically builds for:
+- **Linux**: x86_64, ARM64
+- **macOS**: x86_64 (Intel), ARM64 (Apple Silicon)  
+- **Windows**: x86_64
+
 ## Links
 
 - **Original MCP Server**: [kagimcp](https://github.com/kagisearch/kagimcp)
 - **Kagi Search**: [kagi.com](https://kagi.com)
 - **Zed Extensions**: [zed.dev/docs/extensions](https://zed.dev/docs/extensions)
+- **GoReleaser**: [goreleaser.com](https://goreleaser.com/)
 
 ## License
 
