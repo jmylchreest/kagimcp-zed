@@ -13,19 +13,19 @@ A pure Rust implementation providing Kagi Search and Universal Summarizer integr
 
 ## Architecture
 
-This project is structured as a Cargo workspace with multiple reusable crates:
+This project is structured as a Cargo workspace with focused, lightweight crates:
 
-### 📚 **Libraries**
+### 📚 **Components**
 - **`kagiapi`** - Pure Rust client for Kagi's APIs (search, summarizer)
-- **`mcp-server`** - Generic Model Context Protocol server framework
-- **`kagi-mcp-server`** - Kagi-specific MCP server implementation
+- **`kagi-mcp-server`** - Lightweight MCP server implementation (400 LOC)
 - **`kagimcp-zed`** - Zed extension (WebAssembly)
 
 ### 🎯 **Benefits**
-- **Reusable**: Libraries can be used in other Rust projects
+- **Simple**: Custom MCP implementation that's easy to understand and modify
 - **Type-safe**: Strongly typed APIs with comprehensive error handling
 - **Performance**: Native Rust performance, no Python overhead
-- **Maintainable**: Clean separation of concerns
+- **Maintainable**: Focused codebase without complex external dependencies
+</edits>
 
 ## Quick Start
 
@@ -112,8 +112,7 @@ cd kagimcp-zed
 
 # Build individual components
 cargo build --package kagiapi          # API client library
-cargo build --package mcp-server       # MCP server framework  
-cargo build --package kagi-mcp-server  # Kagi MCP server binary
+cargo build --package kagi-mcp-server  # MCP server binary
 cargo build --target wasm32-unknown-unknown  # Zed extension
 
 # Test MCP server directly
@@ -136,21 +135,18 @@ let results = client.search("rust programming", Some(10)).await?;
 let summary = client.summarize("https://example.com", None, None, None).await?;
 ```
 
-### 🖥️ **mcp-server**
-Generic framework for building MCP servers in Rust.
+### 🔧 **kagi-mcp-server**
+Lightweight MCP server specifically for Kagi integration.
 
 ```rust  
-use mcp_server::{McpServer, Tool, ToolHandler};
+use kagi_mcp_server::KagiMcpServer;
 
-struct MyHandler;
-impl ToolHandler for MyHandler { /* ... */ }
-
-let server = McpServer::new("my-server", "1.0.0", MyHandler);
+let server = KagiMcpServer::new(api_key, engine);
 server.run().await?;
 ```
 
-### 🔍 **kagi-mcp-server**
-Ready-to-use MCP server providing Kagi search and summarization tools.
+### 📦 **Binary Usage**
+Command-line MCP server with flexible configuration options.
 
 ```bash
 # Run with environment variables
