@@ -32,11 +32,13 @@ impl zed::Extension for KagiModelContextExtension {
             serde_json::from_value(settings).map_err(|e| e.to_string())?;
 
         let mut env = vec![("KAGI_API_KEY".into(), settings.kagi_api_key)];
-
+        
         if let Some(engine) = settings.kagi_summarizer_engine {
             env.push(("KAGI_SUMMARIZER_ENGINE".into(), engine));
         }
 
+        // For now, still use uvx kagimcp until we implement binary downloading
+        // TODO: Download and use our own kagi-mcp-server binary
         Ok(Command {
             command: "uvx".to_string(),
             args: vec!["kagimcp".to_string()],

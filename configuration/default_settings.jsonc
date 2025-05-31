@@ -1,8 +1,8 @@
 {
   /// Your Kagi API key - get this from https://kagi.com/settings?p=api
   "kagi_api_key": "YOUR_KAGI_API_KEY_HERE",
-  
+
   /// Optional: Kagi summarizer engine (defaults to "cecil" if not specified)
-  /// Available options: "cecil", "daphne", etc.
-  "kagi_summarizer_engine": "cecil"
+  /// Available options: "cecil", "agnes", "daphne", "muriel"
+  "kagi_summarizer_engine": "cecil",
 }
