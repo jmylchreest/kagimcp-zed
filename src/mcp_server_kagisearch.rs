@@ -14,7 +14,34 @@ struct KagiContextServerSettings {
     kagi_api_key: String,
     #[serde(default)]
     kagi_summarizer_engine: Option<String>,
+    #[serde(default = "default_search_api_version")]
+    kagi_search_api_version: String,
+    #[serde(default = "default_summarizer_api_version")]
+    kagi_summarizer_api_version: String,
+    #[serde(default = "default_fastgpt_api_version")]
+    kagi_fastgpt_api_version: String,
+    #[serde(default = "default_enrich_api_version")]
+    kagi_enrich_api_version: String,
 }
+
+// Default API versions
+fn default_search_api_version() -> String {
+    "v0".to_string()
+}
+
+fn default_summarizer_api_version() -> String {
+    "v0".to_string()
+}
+
+fn default_fastgpt_api_version() -> String {
+    "v0".to_string()
+}
+
+fn default_enrich_api_version() -> String {
+    "v0".to_string()
+}
+
+
 
 struct KagiModelContextExtension {
     cached_binary_path: Option<String>,
@@ -133,6 +160,12 @@ impl zed::Extension for KagiModelContextExtension {
         if let Some(engine) = settings.kagi_summarizer_engine {
             env.push(("KAGI_SUMMARIZER_ENGINE".into(), engine));
         }
+        
+        // Add API version environment variables
+        env.push(("KAGI_SEARCH_API_VERSION".into(), settings.kagi_search_api_version));
+        env.push(("KAGI_SUMMARIZER_API_VERSION".into(), settings.kagi_summarizer_api_version));
+        env.push(("KAGI_FASTGPT_API_VERSION".into(), settings.kagi_fastgpt_api_version));
+        env.push(("KAGI_ENRICH_API_VERSION".into(), settings.kagi_enrich_api_version));
 
         Ok(Command {
             command: self.context_server_binary_path(context_server_id)?,
