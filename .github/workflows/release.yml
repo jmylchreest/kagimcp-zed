@@ -38,20 +38,15 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
 
+      - name: add Cargo to path
+        run: |
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
       - name: Install system dependencies (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libssl-dev libc6-dev mingw-w64 gcc-multilib g++-mingw-w64 gcc-mingw-w64 tar gzip
-
-      - name: Debug PowerShell
-        if: startsWith(matrix.os, 'windows')
-        shell: pwsh
-        run: |
-          where.exe powershell
-          where.exe pwsh
-          $env:PATH -split ';' | Select-String powershell
-          Get-Command powershell | Select-Object Source
 
       # - name: Install Zig
       #   uses: goto-bus-stop/setup-zig@v2
@@ -66,7 +61,6 @@ jobs:
           args: build --clean --single-target
         env:
           TARGET: ${{ matrix.target }}
-          PATH: "$PATH:$HOME/.cargo/bin"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
