@@ -99,7 +99,7 @@ jobs:
         uses: somaz94/compress-decompress@v1
         with:
           command: compress
-          source: ./target/${{ matrix.target }}/release/kagi-mcp-server
+          source: ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
           format: ${{ matrix.archiveformat }}
           dest: "./dist/"
           destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
@@ -108,7 +108,7 @@ jobs:
         if: startsWith(matrix.os , 'windows')
         run: |
           New-Item -ItemType Directory -Path ./dist -Force
-          Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
+          Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }} -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
