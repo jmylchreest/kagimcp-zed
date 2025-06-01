@@ -231,7 +231,7 @@ impl KagiMcpServer {
                     },
                     "serverInfo": {
                         "name": "kagi-mcp-server",
-                        "version": "0.1.0"
+                        "version": env!("CARGO_PKG_VERSION")
                     }
                 })),
                 error: None,
