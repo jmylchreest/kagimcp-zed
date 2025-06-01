@@ -31,16 +31,20 @@ impl KagiModelContextExtension {
             }
         }
 
+        // Fetch the latest release from GitHub
         let release_version: &str = &format!("v{}", env!("CARGO_PKG_VERSION"));
-        let release = zed::github_release_by_tag_name(REPO_NAME, release_version)?;
-        // let release = zed::latest_github_release(
-        //     REPO_NAME,
-        //     zed::GithubReleaseOptions {
-        //         require_assets: true,
-        //         pre_release: false,
-        //     },
-        // )?;
+        let release = match zed::github_release_by_tag_name(REPO_NAME, release_version) {
+            Ok(release) => release,
+            Err(e) => {
+                let url = format!(
+                    "https://api.github.com/repos/{}/releases/tags/{}",
+                    REPO_NAME, release_version
+                );
+                return Err(format!("Failed to fetch release from {}: {}", url, e).into());
+            }
+        };
 
+        // Define which asset we're looking for
         let (platform, arch) = zed::current_platform();
         let asset_name = format!(
             "{BINARY_NAME}_{os}_{arch}.{ext}",
@@ -60,6 +64,13 @@ impl KagiModelContextExtension {
             }
         );
 
+        // // Print all available assets for debugging
+        // println!("Available assets for kagi-mcp-server:");
+        // for available_asset in &release.assets {
+        //     println!("  - {}", available_asset.name);
+        // }
+
+        // Find that asset
         let asset = release
             .assets
             .iter()
