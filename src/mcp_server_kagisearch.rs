@@ -55,7 +55,7 @@ impl KagiModelContextExtension {
                 zed::Os::Windows => "windows",
             },
             ext = match platform {
-                zed::Os::Mac | zed::Os::Linux => "tar.gz",
+                zed::Os::Mac | zed::Os::Linux => "tgz",
                 zed::Os::Windows => "zip",
             }
         );

@@ -15,16 +15,34 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            arch: x86_64
+            platform: linux
+            archiveformat: tgz
           # - os: ubuntu-24.04-arm
           #   target: aarch64-unknown-linux-gnu
+          #   arch: arm64
+          #   platform: linux
+          #   archiveformat: tgz
           - os: ubuntu-latest
             target: x86_64-pc-windows-gnu
+            arch: x86_64
+            platform: windows-gnu
+            archiveformat: zip
           # - os: macos-latest
           #   target: x86_64-apple-darwin
+          #   arch: x86_64
+          #   platform: darwin
+          #   archiveformat: tgz
           # - os: macos-latest
           #   target: aarch64-apple-darwin
+          #   arch: arm64
+          #   platform: darwin
+          #   archiveformat: tgz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            arch: x86_64
+            platform: windows-msvc
+            archiveformat: zip
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -49,29 +67,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pkg-config libssl-dev libc6-dev mingw-w64 gcc-multilib g++-mingw-w64 gcc-mingw-w64 tar gzip
 
-      # - name: Install Zig
-      #   uses: goto-bus-stop/setup-zig@v2
-      #   with:
-      #     cache: false
+      - name: update version in toml files
+        run: |
+          cargo install --locked cargo-edit
+          cargo install --locked sd
+          cargo set-version --workspace ${{ github.ref_name }}
+          sd '^version = "[^"]*"' 'version = "${{ github.ref_name }}"' extension.toml
 
-      - name: GoReleaser (build)
-        uses: goreleaser/goreleaser-action@v6
+      - name: cargo test
+        run: cargo test --release --workspace --target ${{ matrix.target }}
+
+      - name: cargo build
+        run: cargo build --release --workspace --target ${{ matrix.target }}
+
+      - name: Compress Binary
+        uses: somaz94/compress-decompress@v1
         with:
-          distribution: goreleaser
-          version: latest
-          args: build --clean --single-target
-        env:
-          TARGET: ${{ matrix.target }}
+          command: compress
+          source: ./target/${{ matrix.target }}/release/kagi-mcp-server
+          format: ${{ matrix.format }}
+          dest: "./dist/"
+          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.format }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ matrix.target }}
+          name: kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.format }}
           path: dist/
           retention-days: 1
 
   release:
-    name: GoReleaser
+    name: Create Release
     runs-on: ubuntu-latest
     needs: build
 
@@ -88,14 +114,13 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: GoReleaser (release)
-        uses: goreleaser/goreleaser-action@v6
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
         with:
-          distribution: goreleaser
-          version: latest
-          args: release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            dist/kagi-mcp-server*
+            LICENSE
 
   # zed-extension:
   #   name: Release Zed Extension
