@@ -79,24 +79,36 @@ jobs:
           sd '^version = "[^"]*"' 'version = "${{ steps.get_version.outputs.version-without-v }}"' extension.toml
 
       - name: cargo test
+        if: |
+          (startsWith(matrix.platform, 'linux') && startsWith(matrix.os, 'ubuntu')) ||
+          (startsWith(matrix.platform, 'windows') && startsWith(matrix.os, 'windows')) ||
+          (startsWith(matrix.platform, 'darwin') && startsWith(matrix.os, 'macos'))
         run: cargo test --release --workspace --target ${{ matrix.target }}
 
       - name: cargo build
         run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Compress Binary
+        if: (!startsWith(matrix.platform , 'windows'))
         uses: somaz94/compress-decompress@v1
         with:
           command: compress
           source: ./target/${{ matrix.target }}/release/kagi-mcp-server
           format: ${{ matrix.archiveformat }}
           dest: "./dist/"
-          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.archiveformat }}"
+          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
+
+      - name: Compress Binary
+        if: (startsWith(matrix.platform , 'windows'))
+        run: |
+          Compress-Archive \
+            -Path ./target/${{ matrix.target }}/release/kagi-mcp-server \
+            -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.format }}
+          name: kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}
           path: dist/
           retention-days: 1
 
