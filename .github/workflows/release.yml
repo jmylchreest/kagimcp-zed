@@ -89,9 +89,9 @@ jobs:
         with:
           command: compress
           source: ./target/${{ matrix.target }}/release/kagi-mcp-server
-          format: ${{ matrix.format }}
+          format: ${{ matrix.archiveformat }}
           dest: "./dist/"
-          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.format }}"
+          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.platform }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
