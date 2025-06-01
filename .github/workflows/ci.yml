@@ -9,13 +9,25 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: full
 
 jobs:
   test:
     name: Test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary-suffix: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-suffix: ".exe"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary-suffix: ""
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -24,7 +36,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown ${{ matrix.target }}
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -55,3 +67,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace
+
+      - name: Build kagi-mcp-server
+        run: cargo build --release --target ${{ matrix.target }} --package kagi-mcp-server
