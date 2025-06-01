@@ -89,7 +89,7 @@ jobs:
         run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Compress Binary
-        if: (!startsWith(matrix.platform , 'windows'))
+        if: (!startsWith(matrix.os , 'windows'))
         uses: somaz94/compress-decompress@v1
         with:
           command: compress
@@ -99,11 +99,8 @@ jobs:
           destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Compress Binary
-        if: (startsWith(matrix.platform , 'windows'))
-        run: |
-          Compress-Archive \
-            -Path ./target/${{ matrix.target }}/release/kagi-mcp-server \
-            -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
+        if: startsWith(matrix.os , 'windows')
+        run: Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
