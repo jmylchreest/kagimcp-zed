@@ -31,13 +31,15 @@ impl KagiModelContextExtension {
             }
         }
 
-        let release = zed::latest_github_release(
-            REPO_NAME,
-            zed::GithubReleaseOptions {
-                require_assets: true,
-                pre_release: false,
-            },
-        )?;
+        let release_version: &str = &format!("v{}", env!("CARGO_PKG_VERSION"));
+        let release = zed::github_release_by_tag_name(REPO_NAME, &release_version)?;
+        // let release = zed::latest_github_release(
+        //     REPO_NAME,
+        //     zed::GithubReleaseOptions {
+        //         require_assets: true,
+        //         pre_release: false,
+        //     },
+        // )?;
 
         let (platform, arch) = zed::current_platform();
         let asset_name = format!(
@@ -48,9 +50,9 @@ impl KagiModelContextExtension {
                 zed::Architecture::X8664 => "x86_64",
             },
             os = match platform {
-                zed::Os::Mac => "Darwin",
-                zed::Os::Linux => "Linux",
-                zed::Os::Windows => "Windows",
+                zed::Os::Mac => "darwin",
+                zed::Os::Linux => "linux",
+                zed::Os::Windows => "windows",
             },
             ext = match platform {
                 zed::Os::Mac | zed::Os::Linux => "tar.gz",
