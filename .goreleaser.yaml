@@ -21,6 +21,10 @@ builds:
     flags:
       - --release
       - --package=kagi-mcp-server
+    env:
+      - CC_x86_64_pc_windows_msvc=x86_64-w64-mingw32-gcc
+      - CXX_x86_64_pc_windows_msvc=x86_64-w64-mingw32-g++
+      - AR_x86_64_pc_windows_msvc=x86_64-w64-mingw32-ar
 
 archives:
   - name_template: >-
