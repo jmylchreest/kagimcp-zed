@@ -45,12 +45,12 @@ impl KagiModelContextExtension {
             arch = match arch {
                 zed::Architecture::Aarch64 => "arm64",
                 zed::Architecture::X86 => "i386",
-                zed::Architecture::X8664 => "x86_64",
+                zed::Architecture::X8664 => "x64",
             },
             os = match platform {
-                zed::Os::Mac => "Darwin",
-                zed::Os::Linux => "Linux",
-                zed::Os::Windows => "Windows",
+                zed::Os::Mac => "darwin",
+                zed::Os::Linux => "linux",
+                zed::Os::Windows => "windows",
             },
             ext = match platform {
                 zed::Os::Mac | zed::Os::Linux => "tar.gz",

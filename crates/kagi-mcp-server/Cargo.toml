@@ -1,6 +1,6 @@
 [package]
 name = "kagi-mcp-server"
-version = "0.0.1-SNAPSHOT-1748729044"
+version = "0.0.0"
 edition = "2021"
 license = "MIT"
 description = "Kagi MCP Server for AI assistants"
