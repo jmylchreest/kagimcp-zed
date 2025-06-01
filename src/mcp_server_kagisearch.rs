@@ -32,7 +32,7 @@ impl KagiModelContextExtension {
         }
 
         let release_version: &str = &format!("v{}", env!("CARGO_PKG_VERSION"));
-        let release = zed::github_release_by_tag_name(REPO_NAME, &release_version)?;
+        let release = zed::github_release_by_tag_name(REPO_NAME, release_version)?;
         // let release = zed::latest_github_release(
         //     REPO_NAME,
         //     zed::GithubReleaseOptions {
