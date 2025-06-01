@@ -51,6 +51,10 @@ jobs:
           fetch-depth: 0
           clean: true
 
+      - name: Get Version
+        id: get_version
+        uses: baileyherbert/version-action@v3
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -71,8 +75,8 @@ jobs:
         run: |
           cargo install --locked cargo-edit
           cargo install --locked sd
-          cargo set-version --workspace ${{ github.ref_name }}
-          sd '^version = "[^"]*"' 'version = "${{ github.ref_name }}"' extension.toml
+          cargo set-version --workspace ${{ steps.get_version.outputs.version-without-v }}
+          sd '^version = "[^"]*"' 'version = "${{ steps.get_version.outputs.version-without-v }}"' extension.toml
 
       - name: cargo test
         run: cargo test --release --workspace --target ${{ matrix.target }}
