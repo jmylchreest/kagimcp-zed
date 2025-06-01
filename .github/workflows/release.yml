@@ -143,13 +143,13 @@ jobs:
             dist/kagi-mcp-server*
             LICENSE
 
-  # zed-extension:
-  #   name: Release Zed Extension
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: huacnlee/zed-extension-action@v1
-  #       with:
-  #         extension-name: kagimcp-zed
-  #         push-to: jmylchreest/zed-extensions
-  #       env:
-  #         COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+  zed-extension:
+    name: Release Zed Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: huacnlee/zed-extension-action@v1
+        with:
+          extension-name: kagimcp-zed
+          push-to: jmylchreest/zed-extensions
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
