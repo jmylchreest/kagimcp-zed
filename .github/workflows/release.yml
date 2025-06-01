@@ -18,31 +18,37 @@ jobs:
             arch: x86_64
             platform: linux
             archiveformat: tgz
+            buildsuffix: ""
           # - os: ubuntu-24.04-arm
           #   target: aarch64-unknown-linux-gnu
           #   arch: arm64
           #   platform: linux
           #   archiveformat: tgz
+          #   buildsuffix: ""
           - os: ubuntu-latest
             target: x86_64-pc-windows-gnu
             arch: x86_64
             platform: windows-gnu
             archiveformat: zip
+            buildsuffix: ".exe"
           # - os: macos-latest
           #   target: x86_64-apple-darwin
           #   arch: x86_64
           #   platform: darwin
           #   archiveformat: tgz
+          #   buildsuffix: ""
           # - os: macos-latest
           #   target: aarch64-apple-darwin
           #   arch: arm64
           #   platform: darwin
           #   archiveformat: tgz
+          #   buildsuffix: ""
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             arch: x86_64
             platform: windows-msvc
             archiveformat: zip
+            buildsuffix: ".exe"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -100,7 +106,9 @@ jobs:
 
       - name: Compress Binary
         if: startsWith(matrix.os , 'windows')
-        run: Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
+        run: |
+          New-Item -ItemType Directory -Path ./dist -Force
+          Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
