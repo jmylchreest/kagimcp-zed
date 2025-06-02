@@ -75,7 +75,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libc6-dev mingw-w64 gcc-multilib g++-mingw-w64 gcc-mingw-w64 tar gzip
+          sudo apt-get install -y pkg-config libssl-dev libc6-dev mingw-w64 g++-mingw-w64 gcc-mingw-w64 tar gzip
 
       - name: update version in toml files
         run: |
@@ -95,14 +95,13 @@ jobs:
         run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Compress Binary
-        if: (!startsWith(matrix.os , 'windows'))
-        uses: somaz94/compress-decompress@v1
-        with:
-          command: compress
-          source: ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
-          format: ${{ matrix.archiveformat }}
-          dest: "./dist/"
-          destfilename: "kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}"
+        if: startsWith(matrix.os , 'linux') || startsWith(matrix.os , 'darwin')
+        run: |
+          mkdir -p ./dist
+          [[ ${{ matrix.archiveformat }} =~ "gz" ]] && TFLAG="-z"
+          [[ ${{ matrix.archiveformat }} =~ "bz2" ]] && TFLAG="-j"
+          [[ ${{ matrix.archiveformat }} =~ "xz" ]] && TFLAG="-J"
+          tar -cvf ${TFLAG} ./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }} ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
 
       - name: Compress Binary
         if: startsWith(matrix.os , 'windows')
