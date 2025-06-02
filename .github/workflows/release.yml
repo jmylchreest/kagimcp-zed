@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     name: build ${{ matrix.target }}
+    outputs:
+      matrix-size: ${{ strategy.job-total }}
     strategy:
       # fail-fast: true
       fail-fast: false
@@ -101,7 +103,7 @@ jobs:
           [[ ${{ matrix.archiveformat }} =~ "gz" ]] && TFLAG="-z"
           [[ ${{ matrix.archiveformat }} =~ "bz2" ]] && TFLAG="-j"
           [[ ${{ matrix.archiveformat }} =~ "xz" ]] && TFLAG="-J"
-          tar -cvf ${TFLAG} ./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }} ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
+          tar -cv ${TFLAG} -f ./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }} ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
 
       - name: Compress Binary
         if: startsWith(matrix.os , 'windows')
@@ -133,6 +135,22 @@ jobs:
         with:
           path: dist/
           merge-multiple: true
+
+      - name: Verify artifact count
+        shell: bash
+        run: |
+          # Get expected artifacts from build job matrix size
+          EXPECTED_ARTIFACTS=${{ needs.build.outputs.matrix-size }}
+          ACTUAL_ARTIFACTS=$(ls -1 dist/kagi-mcp-server* 2>/dev/null | wc -l)
+          echo "Expected artifacts: $EXPECTED_ARTIFACTS"
+          echo "Downloaded artifacts: $ACTUAL_ARTIFACTS"
+          ls -la dist/
+          if [ "$ACTUAL_ARTIFACTS" -ne "$EXPECTED_ARTIFACTS" ]; then
+            echo "Error: Expected $EXPECTED_ARTIFACTS artifacts but found $ACTUAL_ARTIFACTS"
+            echo "Missing artifacts from the build matrix!"
+            exit 1
+          fi
+          echo "✅ All $EXPECTED_ARTIFACTS artifacts downloaded successfully"
 
       - name: Release
         uses: softprops/action-gh-release@v2
