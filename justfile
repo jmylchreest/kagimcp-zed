@@ -203,7 +203,7 @@ release bump_type="patch": install-tools
     just set-version "$NEW_RELEASE_TAG"
 
     # Check if there are any changes after setting version
-    if git diff-index --quiet HEAD --; then
+    if git diff --quiet; then
         echo "ℹ️  Version files already at $TARGET_VERSION, no version changes to commit"
         SKIP_VERSION_COMMIT=true
     else
@@ -237,11 +237,13 @@ release bump_type="patch": install-tools
     
     echo "Binary built and copied to dist/kagi-mcp-server$EXT"
 
-    if [ "$SKIP_VERSION_COMMIT" = false ]; then
+    if [ "$SKIP_VERSION_COMMIT" = "false" ]; then
         echo "📦 Committing version changes..."
         git add Cargo.toml crates/*/Cargo.toml extension.toml Cargo.lock
         git commit -m "chore: bump version to $NEW_RELEASE_TAG"
         echo "✅ Version bump committed"
+    else
+        echo "ℹ️  No version changes to commit"
     fi
 
     echo "🏷️  Creating tag $NEW_RELEASE_TAG..."
