@@ -185,7 +185,14 @@ release bump_type="patch": install-tools
 
     echo "=== CREATING RELEASE ==="
 
-    # Get the next release version first
+    # Check if working directory is clean
+    if ! git diff-index --quiet HEAD --; then
+        echo "❌ Working directory is not clean. Please commit or stash your changes first."
+        git status --porcelain
+        exit 1
+    fi
+
+    # Get the next release version
     NEW_RELEASE_TAG=$(just tag-get-next-release "{{bump_type}}")
     echo "🏷️  Next release tag: $NEW_RELEASE_TAG"
 
@@ -195,56 +202,45 @@ release bump_type="patch": install-tools
         exit 1
     fi
 
-    # Check current version in Cargo.toml
-    CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-    TARGET_VERSION=${NEW_RELEASE_TAG#v}
-
-    echo "📝 Setting version to $NEW_RELEASE_TAG..."
-    just set-version "$NEW_RELEASE_TAG"
-
-    # Check if there are any changes after setting version
-    if git diff --quiet; then
-        echo "ℹ️  Version files already at $TARGET_VERSION, no version changes to commit"
-        SKIP_VERSION_COMMIT=true
-    else
-        echo "✅ Version files updated from $CURRENT_VERSION to $TARGET_VERSION"
-        SKIP_VERSION_COMMIT=false
-    fi
-
-    echo "🧪 Running tests..."
+    echo "🧪 Running tests before making any changes..."
     just test
 
     echo "🔨 Building for local platform..."
-    
+
     # Build for current platform
     TARGET=$(just detect-target)
-    
+
     # Determine file extension
     if [[ "$TARGET" == *"windows"* ]]; then
         EXT=".exe"
     else
         EXT=""
     fi
-    
+
     echo "Building for target: $TARGET"
     cargo build --release --workspace --target "$TARGET"
-    
+
     # Create dist directory if it doesn't exist
     mkdir -p dist
-    
+
     # Copy binary to dist directory
     cp "target/$TARGET/release/kagi-mcp-server$EXT" "dist/kagi-mcp-server$EXT"
-    
+
     echo "Binary built and copied to dist/kagi-mcp-server$EXT"
 
-    if [ "$SKIP_VERSION_COMMIT" = "false" ]; then
-        echo "📦 Committing version changes..."
-        git add Cargo.toml crates/*/Cargo.toml extension.toml Cargo.lock
-        git commit -m "chore: bump version to $NEW_RELEASE_TAG"
-        echo "✅ Version bump committed"
-    else
-        echo "ℹ️  No version changes to commit"
-    fi
+    # Get current version for logging
+    CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    TARGET_VERSION=${NEW_RELEASE_TAG#v}
+
+    echo "📝 Updating version files and committing atomically..."
+    echo "   Updating from $CURRENT_VERSION to $TARGET_VERSION"
+
+    # Update versions atomically with commit
+    just set-version "$NEW_RELEASE_TAG"
+    git add Cargo.toml crates/*/Cargo.toml extension.toml Cargo.lock
+    git commit -m "chore: bump version to $NEW_RELEASE_TAG"
+
+    echo "✅ Version bump committed"
 
     echo "🏷️  Creating tag $NEW_RELEASE_TAG..."
     git tag "$NEW_RELEASE_TAG"
