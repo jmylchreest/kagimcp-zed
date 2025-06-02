@@ -95,7 +95,7 @@ jobs:
         run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Compress Binary
-        if: startsWith(matrix.os , 'linux') || startsWith(matrix.os , 'darwin')
+        if: startsWith(matrix.os , 'ubuntu') || startsWith(matrix.os , 'macos')
         run: |
           mkdir -p ./dist
           [[ ${{ matrix.archiveformat }} =~ "gz" ]] && TFLAG="-z"
