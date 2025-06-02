@@ -24,7 +24,9 @@
 //!     let results = client.search("rust programming", Some(10)).await?;
 //!     for result in results.data {
 //!         if result.result_type == 0 {
-//!             println!("{}: {}", result.title, result.url);
+//!             let title = result.title.as_deref().unwrap_or("No title");
+//!             let url = result.url.as_deref().unwrap_or("No URL");
+//!             println!("{}: {}", title, url);
 //!         }
 //!     }
 //!
