@@ -185,14 +185,7 @@ release bump_type="patch": install-tools
 
     echo "=== CREATING RELEASE ==="
 
-    # Check if working directory is clean
-    if ! git diff-index --quiet HEAD --; then
-        echo "❌ Working directory is not clean. Please commit or stash your changes first."
-        git status --porcelain
-        exit 1
-    fi
-
-    # Get the next release version
+    # Get the next release version first
     NEW_RELEASE_TAG=$(just tag-get-next-release "{{bump_type}}")
     echo "🏷️  Next release tag: $NEW_RELEASE_TAG"
 
@@ -202,8 +195,21 @@ release bump_type="patch": install-tools
         exit 1
     fi
 
+    # Check current version in Cargo.toml
+    CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    TARGET_VERSION=${NEW_RELEASE_TAG#v}
+
     echo "📝 Setting version to $NEW_RELEASE_TAG..."
     just set-version "$NEW_RELEASE_TAG"
+
+    # Check if there are any changes after setting version
+    if git diff-index --quiet HEAD --; then
+        echo "ℹ️  Version files already at $TARGET_VERSION, no version changes to commit"
+        SKIP_VERSION_COMMIT=true
+    else
+        echo "✅ Version files updated from $CURRENT_VERSION to $TARGET_VERSION"
+        SKIP_VERSION_COMMIT=false
+    fi
 
     echo "🧪 Running tests..."
     just test
@@ -231,9 +237,12 @@ release bump_type="patch": install-tools
     
     echo "Binary built and copied to dist/kagi-mcp-server$EXT"
 
-    echo "📦 Committing version changes..."
-    git add Cargo.toml crates/*/Cargo.toml extension.toml Cargo.lock
-    git commit -m "chore: bump version to $NEW_RELEASE_TAG"
+    if [ "$SKIP_VERSION_COMMIT" = false ]; then
+        echo "📦 Committing version changes..."
+        git add Cargo.toml crates/*/Cargo.toml extension.toml Cargo.lock
+        git commit -m "chore: bump version to $NEW_RELEASE_TAG"
+        echo "✅ Version bump committed"
+    fi
 
     echo "🏷️  Creating tag $NEW_RELEASE_TAG..."
     git tag "$NEW_RELEASE_TAG"
