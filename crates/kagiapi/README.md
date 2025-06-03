@@ -1,6 +1,14 @@
 # KagiAPI
 
-A Rust client library for Kagi's Search and Universal Summarizer APIs.
+A Rust client library for Kagi's Search, Enrich, FastGPT and Universal Summarizer APIs.
+
+# kagi-mcp-server
+
+A Rust MCP application leveraging the KagiAPI library exposing tools for each API.
+
+# Zed MCP extension 
+
+An extension for the Zed IDE that plugs the Kagi MCP server directly into the Zed IDE.
 
 ## Features
 
