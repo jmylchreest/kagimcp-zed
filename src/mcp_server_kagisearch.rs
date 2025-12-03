@@ -10,6 +10,7 @@ const REPO_NAME: &str = "jmylchreest/kagimcp-zed";
 const BINARY_NAME: &str = "kagi-mcp-server";
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[allow(clippy::struct_field_names)]
 struct KagiContextServerSettings {
     kagi_api_key: String,
     #[serde(default)]
@@ -41,8 +42,6 @@ fn default_enrich_api_version() -> String {
     "v0".to_string()
 }
 
-
-
 struct KagiModelContextExtension {
     cached_binary_path: Option<String>,
 }
@@ -64,10 +63,9 @@ impl KagiModelContextExtension {
             Ok(release) => release,
             Err(e) => {
                 let url = format!(
-                    "https://api.github.com/repos/{}/releases/tags/{}",
-                    REPO_NAME, release_version
+                    "https://api.github.com/repos/{REPO_NAME}/releases/tags/{release_version}"
                 );
-                return Err(format!("Failed to fetch release from {}: {}", url, e).into());
+                return Err(format!("Failed to fetch release from {url}: {e}"));
             }
         };
 
@@ -91,18 +89,12 @@ impl KagiModelContextExtension {
             }
         );
 
-        // // Print all available assets for debugging
-        // println!("Available assets for kagi-mcp-server:");
-        // for available_asset in &release.assets {
-        //     println!("  - {}", available_asset.name);
-        // }
-
         // Find that asset
         let asset = release
             .assets
             .iter()
             .find(|asset| asset.name == asset_name)
-            .ok_or_else(|| format!("no asset found matching {:?}", asset_name))?;
+            .ok_or_else(|| format!("no asset found matching {asset_name:?}"))?;
 
         let version_dir = format!("{BINARY_NAME}-{}", release.version);
         fs::create_dir_all(&version_dir)
@@ -160,12 +152,24 @@ impl zed::Extension for KagiModelContextExtension {
         if let Some(engine) = settings.kagi_summarizer_engine {
             env.push(("KAGI_SUMMARIZER_ENGINE".into(), engine));
         }
-        
+
         // Add API version environment variables
-        env.push(("KAGI_SEARCH_API_VERSION".into(), settings.kagi_search_api_version));
-        env.push(("KAGI_SUMMARIZER_API_VERSION".into(), settings.kagi_summarizer_api_version));
-        env.push(("KAGI_FASTGPT_API_VERSION".into(), settings.kagi_fastgpt_api_version));
-        env.push(("KAGI_ENRICH_API_VERSION".into(), settings.kagi_enrich_api_version));
+        env.push((
+            "KAGI_SEARCH_API_VERSION".into(),
+            settings.kagi_search_api_version,
+        ));
+        env.push((
+            "KAGI_SUMMARIZER_API_VERSION".into(),
+            settings.kagi_summarizer_api_version,
+        ));
+        env.push((
+            "KAGI_FASTGPT_API_VERSION".into(),
+            settings.kagi_fastgpt_api_version,
+        ));
+        env.push((
+            "KAGI_ENRICH_API_VERSION".into(),
+            settings.kagi_enrich_api_version,
+        ));
 
         Ok(Command {
             command: self.context_server_binary_path(context_server_id)?,

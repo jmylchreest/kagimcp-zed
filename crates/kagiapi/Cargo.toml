@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "Rust client library for Kagi Search and Universal Summarizer APIs"
 repository = "https://github.com/jmylchreest/kagimcp-zed"
+readme = "../../README.md"
 keywords = ["kagi", "search", "api", "summarizer"]
 categories = ["api-bindings", "web-programming::http-client"]
 
@@ -16,9 +17,9 @@ reqwest = { version = "0.11", features = [
     # "rustls-tls-webpki-roots",
     "json",
 ], default-features = false }
-tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.48", features = ["rt", "rt-multi-thread", "macros"] }
 thiserror = "1.0"
-url = "2.4"
+url = "2.5"
 rustls = { version = "0.23", default-features = false, features = [
     # "aws_lc_rs",
 ] }

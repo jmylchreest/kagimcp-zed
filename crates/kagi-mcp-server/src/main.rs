@@ -8,6 +8,7 @@ use kagiapi::{KagiClient, SummarizerEngine, SummaryType};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::env;
+use std::fmt::Write;
 use std::io;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -64,7 +65,7 @@ struct Tool {
 #[command(name = "kagi-mcp-server")]
 #[command(about = "Kagi MCP Server for AI assistants")]
 struct Args {
-    /// Kagi API key (can also be set via KAGI_API_KEY environment variable)
+    /// Kagi API key (can also be set via `KAGI_API_KEY` environment variable)
     #[arg(long, env = "KAGI_API_KEY")]
     api_key: Option<String>,
 
@@ -80,7 +81,7 @@ struct Args {
     #[arg(long, env = "KAGI_SUMMARIZER_API_VERSION", default_value = "v0")]
     summarizer_api_version: String,
 
-    /// API version for FastGPT endpoint
+    /// API version for `FastGPT` endpoint
     #[arg(long, env = "KAGI_FASTGPT_API_VERSION", default_value = "v0")]
     fastgpt_api_version: String,
 
@@ -110,7 +111,7 @@ impl KagiMcpServer {
                 search_version,
                 summarizer_version,
                 fastgpt_version,
-                enrich_version
+                enrich_version,
             ),
             default_engine,
         }
@@ -126,6 +127,7 @@ impl KagiMcpServer {
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn parse_summary_type(&self, type_str: Option<&str>) -> SummaryType {
         match type_str {
             Some("takeaway") => SummaryType::Takeaway,
@@ -146,7 +148,7 @@ impl KagiMcpServer {
                         all_results.push_str(&self.format_search_results(query, &response));
                     }
                     Err(e) => {
-                        return Err(format!("Search failed for query '{}': {}", query, e));
+                        return Err(format!("Search failed for query '{query}': {e}"));
                     }
                 }
             } else {
@@ -171,14 +173,14 @@ impl KagiMcpServer {
                 if !response.references.is_empty() {
                     result.push_str("\n\nReferences:\n");
                     for (i, reference) in response.references.iter().enumerate() {
-                        result.push_str(&format!("{}. {}\n", i + 1, reference.title));
-                        result.push_str(&format!("   {}\n", reference.url));
+                        let _ = writeln!(result, "{}. {}", i + 1, reference.title);
+                        let _ = writeln!(result, "   {}", reference.url);
                     }
                 }
 
                 Ok(result)
             }
-            Err(e) => Err(format!("FastGPT failed for query '{}': {}", query, e)),
+            Err(e) => Err(format!("FastGPT failed for query '{query}': {e}")),
         }
     }
 
@@ -194,50 +196,48 @@ impl KagiMcpServer {
                     kagiapi::EnrichType::News => "news",
                 };
 
-                let mut formatted_results = format!(
-                    "Kagi {} enrichment results for query: {}\n\n",
-                    type_name, query
-                );
+                let mut formatted_results =
+                    format!("Kagi {type_name} enrichment results for query: {query}\n\n");
 
                 // Format the results
                 for (i, result) in results.iter().enumerate() {
                     if result.result_type == 0 {
                         // Only include actual search results
                         if let Some(title) = &result.title {
-                            formatted_results.push_str(&format!("{}. {}\n", i + 1, title));
+                            let _ = writeln!(formatted_results, "{}. {}", i + 1, title);
                         } else {
-                            formatted_results.push_str(&format!("{}. [No Title]\n", i + 1));
+                            let _ = writeln!(formatted_results, "{}. [No Title]", i + 1);
                         }
 
                         if let Some(url) = &result.url {
-                            formatted_results.push_str(&format!("   URL: {}\n", url));
+                            let _ = writeln!(formatted_results, "   URL: {url}");
                         }
 
                         if let Some(snippet) = &result.snippet {
                             if !snippet.is_empty() {
-                                formatted_results.push_str(&format!("   {}\n", snippet));
+                                let _ = writeln!(formatted_results, "   {snippet}");
                             }
                         }
 
                         if let Some(published) = &result.published {
                             if !published.is_empty() {
-                                formatted_results
-                                    .push_str(&format!("   Published: {}\n", published));
+                                let _ = writeln!(formatted_results, "   Published: {published}");
                             }
                         }
 
-                        formatted_results.push_str("\n");
+                        formatted_results.push('\n');
                     }
                 }
 
                 Ok(formatted_results)
             }
-            Err(e) => Err(format!("Enrichment failed for query '{}': {}", query, e)),
+            Err(e) => Err(format!("Enrichment failed for query '{query}': {e}")),
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn format_search_results(&self, query: &str, response: &kagiapi::SearchResponse) -> String {
-        let mut output = format!("-----\nResults for search query \"{}\":\n-----\n", query);
+        let mut output = format!("-----\nResults for search query \"{query}\":\n-----\n");
         let mut result_number = 1;
 
         for result in &response.data {
@@ -245,20 +245,21 @@ impl KagiMcpServer {
                 0 => {
                     // Standard search result type
                     if let (Some(title), Some(url)) = (&result.title, &result.url) {
-                        output.push_str(&format!("{}: {}\n{}\n", result_number, title, url));
+                        let _ = writeln!(output, "{result_number}: {title}\n{url}");
 
                         // Add published date if available
-                        output.push_str(&format!(
-                            "Published Date: {}\n",
+                        let _ = writeln!(
+                            output,
+                            "Published Date: {}",
                             result.published.as_deref().unwrap_or("Not Available")
-                        ));
+                        );
 
                         // Add snippet if available
                         if let Some(snippet) = &result.snippet {
-                            output.push_str(&format!("{}\n", snippet));
+                            let _ = writeln!(output, "{snippet}");
                         }
 
-                        output.push_str("\n");
+                        output.push('\n');
                         result_number += 1;
                     }
                 }
@@ -267,7 +268,7 @@ impl KagiMcpServer {
                     if let Some(list) = &result.list {
                         output.push_str("Related searches:\n");
                         for item in list {
-                            output.push_str(&format!("- {}\n", item));
+                            let _ = writeln!(output, "- {item}");
                         }
                         output.push('\n');
                     }
@@ -275,12 +276,12 @@ impl KagiMcpServer {
                 _ => {
                     // Unknown result type - try to extract what we can
                     if let Some(title) = &result.title {
-                        output.push_str(&format!("{}: {}\n", result_number, title));
+                        let _ = writeln!(output, "{result_number}: {title}");
                         if let Some(url) = &result.url {
-                            output.push_str(&format!("{}\n", url));
+                            let _ = writeln!(output, "{url}");
                         }
                         if let Some(snippet) = &result.snippet {
-                            output.push_str(&format!("{}\n", snippet));
+                            let _ = writeln!(output, "{snippet}");
                         }
                         output.push('\n');
                         result_number += 1;
@@ -308,10 +309,11 @@ impl KagiMcpServer {
             .await
         {
             Ok(summary_data) => Ok(summary_data.output),
-            Err(e) => Err(format!("Summarization failed: {}", e)),
+            Err(e) => Err(format!("Summarization failed: {e}")),
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn get_tools(&self) -> Vec<Tool> {
         vec![
             Tool {
@@ -413,6 +415,7 @@ impl KagiMcpServer {
         ]
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn handle_request(&self, request: McpRequest) -> McpResponse {
         match request.method.as_str() {
             "initialize" => McpResponse {
@@ -539,9 +542,11 @@ impl KagiMcpServer {
                                 "kagi_fastgpt" => {
                                     if let Some(query) = args.get("query").and_then(|v| v.as_str())
                                     {
-                                        let cache = args.get("cache").and_then(|v| v.as_bool());
-                                        let web_search =
-                                            args.get("web_search").and_then(|v| v.as_bool());
+                                        let cache =
+                                            args.get("cache").and_then(serde_json::Value::as_bool);
+                                        let web_search = args
+                                            .get("web_search")
+                                            .and_then(serde_json::Value::as_bool);
 
                                         match self.handle_fastgpt(query, cache, web_search).await {
                                             Ok(result) => McpResponse {
@@ -672,7 +677,7 @@ impl KagiMcpServer {
                                     result: None,
                                     error: Some(McpErrorResponse {
                                         code: -32601,
-                                        message: format!("Tool '{}' not found", name),
+                                        message: format!("Tool '{name}' not found"),
                                         data: None,
                                     }),
                                 },
@@ -761,7 +766,7 @@ impl KagiMcpServer {
                         result: None,
                         error: Some(McpErrorResponse {
                             code: -32700,
-                            message: format!("Parse error: {}", e),
+                            message: format!("Parse error: {e}"),
                             data: None,
                         }),
                     };
@@ -806,7 +811,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.search_api_version,
         args.summarizer_api_version,
         args.fastgpt_api_version,
-        args.enrich_api_version
+        args.enrich_api_version,
     );
     server.run().await?;
     Ok(())

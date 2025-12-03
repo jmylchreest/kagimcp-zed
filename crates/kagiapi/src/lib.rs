@@ -5,10 +5,10 @@
 //! - Universal Summarizer API for content summarization
 //!
 //! References:
-//! - https://help.kagi.com/kagi/api/search.html
-//! - https://help.kagi.com/kagi/api/summarizer.html
-//! - https://help.kagi.com/kagi/api/fastgpt.html
-//! - https://help.kagi.com/kagi/api/enrich.html
+//! - <https://help.kagi.com/kagi/api/search.html>
+//! - <https://help.kagi.com/kagi/api/summarizer.html>
+//! - <https://help.kagi.com/kagi/api/fastgpt.html>
+//! - <https://help.kagi.com/kagi/api/enrich.html>
 //!
 //!
 //! # Example
@@ -45,7 +45,6 @@
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use thiserror::Error;
 
 pub const API_BASE_URL_PREFIX: &str = "https://kagi.com/api";
@@ -179,18 +178,20 @@ pub struct EnrichResponse {
     pub data: Vec<SearchResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum SummarizerEngine {
+    #[default]
     Cecil,
     Agnes,
     Daphne,
     Muriel,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum SummaryType {
+    #[default]
     Summary,
     Takeaway,
 }
@@ -249,13 +250,11 @@ impl KagiClient {
     /// # Arguments
     /// * `query` - The search query
     /// * `limit` - Maximum number of results (optional, defaults to 10)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn search(&self, query: &str, limit: Option<u32>) -> Result<SearchResponse> {
-        let mut params = HashMap::new();
-        params.insert("q", query.to_string());
-        if let Some(limit) = limit {
-            params.insert("limit", limit.to_string());
-        }
-
         // Use URL parameters instead of JSON body for search API
         let mut url = url::Url::parse(&format!(
             "{}/{}/search",
@@ -300,6 +299,9 @@ impl KagiClient {
     /// * `engine` - Summarization engine to use (optional, defaults to Cecil)
     /// * `summary_type` - Type of summary (optional, defaults to Summary)
     /// * `target_language` - Target language code (optional)
+    /// # Errors
+    ///
+    /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn summarize(
         &self,
         url: &str,
@@ -308,7 +310,10 @@ impl KagiClient {
         target_language: Option<&str>,
     ) -> Result<SummaryData> {
         let mut params = serde_json::Map::new();
-        params.insert("url".to_string(), serde_json::Value::String(url.to_string()));
+        params.insert(
+            "url".to_string(),
+            serde_json::Value::String(url.to_string()),
+        );
 
         if let Some(engine) = engine {
             let engine_str = serde_json::to_string(&engine)?
@@ -321,11 +326,17 @@ impl KagiClient {
             let summary_type_str = serde_json::to_string(&summary_type)?
                 .trim_matches('"')
                 .to_string();
-            params.insert("summary_type".to_string(), serde_json::Value::String(summary_type_str));
+            params.insert(
+                "summary_type".to_string(),
+                serde_json::Value::String(summary_type_str),
+            );
         }
 
         if let Some(target_language) = target_language {
-            params.insert("target_language".to_string(), serde_json::Value::String(target_language.to_string()));
+            params.insert(
+                "target_language".to_string(),
+                serde_json::Value::String(target_language.to_string()),
+            );
         }
 
         let url = format!(
@@ -360,6 +371,9 @@ impl KagiClient {
     /// * `engine` - Summarization engine to use (optional, defaults to Cecil)
     /// * `summary_type` - Type of summary (optional, defaults to Summary)
     /// * `target_language` - Target language code (optional)
+    /// # Errors
+    ///
+    /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn summarize_text(
         &self,
         text: &str,
@@ -368,7 +382,10 @@ impl KagiClient {
         target_language: Option<&str>,
     ) -> Result<SummaryData> {
         let mut params = serde_json::Map::new();
-        params.insert("text".to_string(), serde_json::Value::String(text.to_string()));
+        params.insert(
+            "text".to_string(),
+            serde_json::Value::String(text.to_string()),
+        );
 
         if let Some(engine) = engine {
             let engine_str = serde_json::to_string(&engine)?
@@ -381,11 +398,17 @@ impl KagiClient {
             let summary_type_str = serde_json::to_string(&summary_type)?
                 .trim_matches('"')
                 .to_string();
-            params.insert("summary_type".to_string(), serde_json::Value::String(summary_type_str));
+            params.insert(
+                "summary_type".to_string(),
+                serde_json::Value::String(summary_type_str),
+            );
         }
 
         if let Some(target_language) = target_language {
-            params.insert("target_language".to_string(), serde_json::Value::String(target_language.to_string()));
+            params.insert(
+                "target_language".to_string(),
+                serde_json::Value::String(target_language.to_string()),
+            );
         }
 
         let url = format!(
@@ -413,12 +436,15 @@ impl KagiClient {
         Ok(summary_response.data)
     }
 
-    /// Use FastGPT to answer a query
+    /// Use `FastGPT` to answer a query
     ///
     /// # Arguments
     /// * `query` - The query to be answered
     /// * `cache` - Whether to allow cached requests & responses (optional, defaults to true)
     /// * `web_search` - Whether to perform web searches to enrich answers (optional, defaults to true)
+    /// # Errors
+    ///
+    /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn fastgpt(
         &self,
         query: &str,
@@ -426,14 +452,20 @@ impl KagiClient {
         web_search: Option<bool>,
     ) -> Result<FastGptData> {
         let mut params = serde_json::Map::new();
-        params.insert("query".to_string(), serde_json::Value::String(query.to_string()));
+        params.insert(
+            "query".to_string(),
+            serde_json::Value::String(query.to_string()),
+        );
 
         if let Some(cache) = cache {
             params.insert("cache".to_string(), serde_json::Value::Bool(cache));
         }
 
         if let Some(web_search) = web_search {
-            params.insert("web_search".to_string(), serde_json::Value::Bool(web_search));
+            params.insert(
+                "web_search".to_string(),
+                serde_json::Value::Bool(web_search),
+            );
         }
 
         let url = format!(
@@ -467,6 +499,9 @@ impl KagiClient {
     /// # Arguments
     /// * `query` - The search query
     /// * `enrich_type` - The type of enrichment (web or news)
+    /// # Errors
+    ///
+    /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn enrich(&self, query: &str, enrich_type: EnrichType) -> Result<Vec<SearchResult>> {
         // Build the URL with query parameters
         let endpoint = match enrich_type {
@@ -504,18 +539,6 @@ impl KagiClient {
 
         let enrich_response: EnrichResponse = response.json().await?;
         Ok(enrich_response.data)
-    }
-}
-
-impl Default for SummarizerEngine {
-    fn default() -> Self {
-        Self::Cecil
-    }
-}
-
-impl Default for SummaryType {
-    fn default() -> Self {
-        Self::Summary
     }
 }
 
@@ -566,12 +589,15 @@ mod tests {
     fn test_fastgpt_params_serialization() {
         // Test that boolean parameters are serialized as JSON booleans, not strings
         let mut params = serde_json::Map::new();
-        params.insert("query".to_string(), serde_json::Value::String("test query".to_string()));
+        params.insert(
+            "query".to_string(),
+            serde_json::Value::String("test query".to_string()),
+        );
         params.insert("web_search".to_string(), serde_json::Value::Bool(true));
         params.insert("cache".to_string(), serde_json::Value::Bool(false));
 
         let json = serde_json::to_string(&serde_json::Value::Object(params)).unwrap();
-        
+
         // Verify that booleans are not quoted in the JSON
         assert!(json.contains("\"web_search\":true"));
         assert!(json.contains("\"cache\":false"));
