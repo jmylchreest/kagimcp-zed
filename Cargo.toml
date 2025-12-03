@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "kagimcp-zed"
-version = "0.0.28"
+version = "0.0.29"
 edition = "2021"
 publish = false
 license = "MIT"

@@ -1,6 +1,6 @@
 [package]
 name = "kagiapi"
-version = "0.0.28"
+version = "0.0.29"
 edition = "2021"
 license = "MIT"
 description = "Rust client library for Kagi Search and Universal Summarizer APIs"
