@@ -179,7 +179,7 @@ jobs:
     steps:
       - uses: huacnlee/zed-extension-action@v2
         with:
-          extension-name: kagimcp-zed
+          extension-name: kagimcp
           push-to: jmylchreest/zed-extensions
           tag: ${{ inputs.tag || github.ref_name }}
         env:
