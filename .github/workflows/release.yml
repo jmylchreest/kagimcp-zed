@@ -103,13 +103,16 @@ jobs:
           [[ ${{ matrix.archiveformat }} =~ "gz" ]] && TFLAG="-z"
           [[ ${{ matrix.archiveformat }} =~ "bz2" ]] && TFLAG="-j"
           [[ ${{ matrix.archiveformat }} =~ "xz" ]] && TFLAG="-J"
-          tar -cv ${TFLAG} -f ./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }} ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }}
+          # Use -C to change to release directory so binary is at archive root
+          tar -cv ${TFLAG} -f ./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }} -C ./target/${{ matrix.target }}/release kagi-mcp-server${{ matrix.buildsuffix }}
 
       - name: Compress Binary
         if: startsWith(matrix.os , 'windows')
         run: |
           New-Item -ItemType Directory -Path ./dist -Force
-          Compress-Archive -Path ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }} -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
+          # Copy binary to temp location so it's at archive root
+          Copy-Item ./target/${{ matrix.target }}/release/kagi-mcp-server${{ matrix.buildsuffix }} ./kagi-mcp-server${{ matrix.buildsuffix }}
+          Compress-Archive -Path ./kagi-mcp-server${{ matrix.buildsuffix }} -Destination "./dist/kagi-mcp-server_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.archiveformat }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
