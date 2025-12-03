@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "kagimcp-zed"
-version = "0.0.26"
+version = "0.0.27-SNAPSHOT-1764799223"
 edition = "2021"
 publish = false
 license = "MIT"
@@ -15,5 +15,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 serde = "1.0"
-schemars = "0.8"
-zed_extension_api = "0.5.0"
+schemars = "1.1"
+zed_extension_api = "0.7.0"

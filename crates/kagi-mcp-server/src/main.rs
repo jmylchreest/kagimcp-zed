@@ -63,6 +63,7 @@ struct Tool {
 
 #[derive(Parser)]
 #[command(name = "kagi-mcp-server")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Kagi MCP Server for AI assistants")]
 struct Args {
     /// Kagi API key (can also be set via `KAGI_API_KEY` environment variable)

@@ -1,6 +1,6 @@
 [package]
 name = "kagi-mcp-server"
-version = "0.0.26"
+version = "0.0.27-SNAPSHOT-1764799223"
 edition = "2021"
 license = "MIT"
 description = "Kagi MCP Server for AI assistants"
@@ -25,4 +25,4 @@ tokio = { version = "1.48", features = [
 ] }
 async-trait = "0.1"
 clap = { version = "4.5", features = ["derive", "env"] }
-thiserror = "1.0"
+thiserror = "2.0"

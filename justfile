@@ -1,5 +1,8 @@
 # justfile for kagimcp-zed project
 
+# WASM target for Zed extensions (must be wasip2 for Component Model)
+WASM_TARGET := "wasm32-wasip2"
+
 # List available commands
 default:
     @just --list
@@ -158,23 +161,23 @@ build: install-tools
 
     # Build for current platform
     TARGET=$(just detect-target)
-    
+
     # Determine file extension
     if [[ "$TARGET" == *"windows"* ]]; then
         EXT=".exe"
     else
         EXT=""
     fi
-    
+
     echo "Building for target: $TARGET"
     cargo build --release --workspace --target "$TARGET"
-    
+
     # Create dist directory if it doesn't exist
     mkdir -p dist
-    
+
     # Copy binary to dist directory
     cp "target/$TARGET/release/kagi-mcp-server$EXT" "dist/kagi-mcp-server$EXT"
-    
+
     echo "Binary built and copied to dist/kagi-mcp-server$EXT"
     echo "Build complete with version $VERSION"
 
@@ -252,6 +255,66 @@ release bump_type="patch": install-tools
     echo ""
     echo "Or to push everything:"
     echo "  git push --follow-tags"
+
+# Build WASM extension for local testing
+build-wasm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🔧 Building WASM extension..."
+
+    # Check if wasm target is installed
+    if ! rustup target list --installed | grep -q "{{WASM_TARGET}}"; then
+        echo "Installing {{WASM_TARGET}} target..."
+        rustup target add {{WASM_TARGET}}
+    fi
+
+    # Build the WASM extension
+    cargo build --release --target {{WASM_TARGET}} -p kagimcp-zed
+
+    # Copy to extension.wasm
+    cp "target/{{WASM_TARGET}}/release/kagimcp_zed.wasm" extension.wasm
+
+    echo "✅ WASM extension built: extension.wasm"
+
+# Install extension locally for testing in Zed
+install-local: build-wasm
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Determine Zed extensions directory based on OS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        ZED_EXTENSIONS_DIR="$HOME/Library/Application Support/Zed/extensions/installed"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        ZED_EXTENSIONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zed/extensions/installed"
+    else
+        echo "❌ Unsupported OS for local install: $OSTYPE"
+        exit 1
+    fi
+
+    EXTENSION_DIR="$ZED_EXTENSIONS_DIR/kagimcp"
+
+    echo "📦 Installing extension to: $EXTENSION_DIR"
+
+    # Create extension directory
+    mkdir -p "$EXTENSION_DIR"
+
+    # Copy extension files
+    cp extension.toml "$EXTENSION_DIR/"
+    cp extension.wasm "$EXTENSION_DIR/"
+    cp -r configuration "$EXTENSION_DIR/" 2>/dev/null || true
+
+    echo "✅ Extension installed locally!"
+    echo ""
+    echo "To use the extension:"
+    echo "  1. Restart Zed"
+    echo "  2. The extension should appear in your extensions list"
+    echo ""
+    echo "Note: You may need to configure your Kagi API key in Zed settings."
+
+# Build everything (native binary + WASM extension)
+build-all: build build-wasm
+    @echo "✅ All builds complete!"
 
 # Push the latest release tag and trigger CI
 push-release:
