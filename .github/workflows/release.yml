@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to build and release (e.g., v1.0.0)"
+        required: true
+        type: string
 
 jobs:
   build:
@@ -58,6 +64,7 @@ jobs:
         with:
           fetch-depth: 0
           clean: true
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Get Version
         id: get_version
@@ -157,8 +164,9 @@ jobs:
 
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || inputs.tag != ''
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             dist/kagi-mcp-server*
             LICENSE
@@ -169,9 +177,10 @@ jobs:
     needs: release
 
     steps:
-      - uses: huacnlee/zed-extension-action@v1
+      - uses: huacnlee/zed-extension-action@v2
         with:
           extension-name: kagimcp-zed
           push-to: jmylchreest/zed-extensions
+          tag: ${{ inputs.tag || github.ref_name }}
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
