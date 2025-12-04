@@ -3,8 +3,9 @@
   "kagi_api_key": "YOUR_KAGI_API_KEY_HERE",
 
   /// Optional: Kagi summarizer engine (defaults to "cecil" if not specified)
-  /// Available options: "cecil", "agnes", "daphne", "muriel"
+  /// Available options: "cecil", "agnes", "muriel"
   "kagi_summarizer_engine": "cecil",
+
   /// Optional: Default settings for FastGPT tool
   /// Enable or disable cache for FastGPT responses (defaults to true if not specified)
   "kagi_fastgpt_cache": true,
@@ -12,10 +13,4 @@
   /// Optional: Enable or disable web search for FastGPT (defaults to true if not specified)
   /// Note: Currently, web_search must be set to true for the API to function properly
   "kagi_fastgpt_web_search": true,
-
-  /// Do not change these unless absolutely required. Adding them in just to expose them somewhere.
-  // "kagi_search_api_version": "v0",
-  // "kagi_summarizer_api_version": "v0",
-  // "kagi_fastgpt_api_version": "v0",
-  // "kagi_enrich_api_version": "v0"
 }
