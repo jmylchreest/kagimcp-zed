@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "kagi-mcp-server"
-version = "0.0.29"
+version = "0.0.30"
 dependencies = [
  "async-trait",
  "clap",
@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "kagiapi"
-version = "0.0.29"
+version = "0.0.30"
 dependencies = [
  "reqwest",
  "rustls",
@@ -687,7 +687,7 @@ dependencies = [
 
 [[package]]
 name = "kagimcp-zed"
-version = "0.0.29"
+version = "0.0.30"
 dependencies = [
  "schemars",
  "serde",
