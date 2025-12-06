@@ -184,3 +184,37 @@ jobs:
           tag: ${{ inputs.tag || github.ref_name }}
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+
+  npm-publish:
+    name: Publish NPM Package
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Get Version
+        id: get_version
+        uses: baileyherbert/version-action@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Update package.json version
+        working-directory: contrib/npm
+        run: |
+          npm version ${{ steps.get_version.outputs.version-without-v }} --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: contrib/npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,55 @@
+{
+  "name": "kagi-mcp-server",
+  "version": "0.0.30",
+  "description": "NPX wrapper for Kagi MCP Server - Kagi Search and Summarizer integration for AI assistants via Model Context Protocol",
+  "main": "index.js",
+  "bin": {
+    "kagi-mcp-server": "bin/kagi-mcp-server.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "kagi",
+    "mcp",
+    "model-context-protocol",
+    "search",
+    "summarizer",
+    "ai",
+    "claude",
+    "llm",
+    "npx"
+  ],
+  "author": "John Mylchreest <jmylchreest@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmylchreest/kagimcp-zed.git"
+  },
+  "homepage": "https://github.com/jmylchreest/kagimcp-zed#readme",
+  "bugs": {
+    "url": "https://github.com/jmylchreest/kagimcp-zed/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "scripts/",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+}

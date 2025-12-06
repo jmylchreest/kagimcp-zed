@@ -1,0 +1,33 @@
+# Development files
+.git/
+.github/
+.gitignore
+
+# Test files
+test.js
+*.test.js
+__tests__/
+
+# Documentation (keep README.md)
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+node_modules/
+*.log
+npm-debug.log*
+
+# Local development
+.env
+.env.local
