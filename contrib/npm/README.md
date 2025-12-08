@@ -116,6 +116,16 @@ In your Continue configuration (`~/.continue/config.json`):
 }
 ```
 
+### Claude Code (CLI)
+
+Add the Kagi MCP server to Claude Code using the CLI:
+
+```bash
+claude mcp add -s user kagi -e KAGI_API_KEY="<YOUR-KEY-HERE>" -- npx -y kagi-mcp-server@latest
+```
+
+This registers the Kagi MCP server at the user level, making it available across all your Claude Code projects.
+
 ### Zed Editor
 
 For Zed, we recommend using the native Zed extension instead of this npx wrapper. Install "Kagi MCP Server" from the Zed extension marketplace.
