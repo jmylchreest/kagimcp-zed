@@ -15,5 +15,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 serde = "1.0"
-schemars = "1.1"
+schemars = "1"
 zed_extension_api = "0.7.0"

@@ -245,6 +245,34 @@ impl KagiClient {
         }
     }
 
+    /// Send an HTTP response and parse a successful JSON response body.
+    ///
+    /// Returns an `Error::Api` if the status code is not 2xx.
+    async fn handle_response<T: serde::de::DeserializeOwned>(
+        response: reqwest::Response,
+    ) -> Result<T> {
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let text = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status,
+                message: text,
+            });
+        }
+        Ok(response.json().await?)
+    }
+
+    /// Build a URL for the given API version and path segments, returning an
+    /// error when the base URL prefix cannot be parsed.
+    fn build_url(&self, version: &str, path: &str) -> Result<url::Url> {
+        url::Url::parse(&format!("{}/{}/{}", self.base_url_prefix, version, path)).map_err(|_| {
+            Error::Api {
+                status: 400,
+                message: "Invalid URL".to_string(),
+            }
+        })
+    }
+
     /// Search the web using Kagi's Search API
     ///
     /// # Arguments
@@ -255,17 +283,8 @@ impl KagiClient {
     ///
     /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn search(&self, query: &str, limit: Option<u32>) -> Result<SearchResponse> {
-        // Use URL parameters instead of JSON body for search API
-        let mut url = url::Url::parse(&format!(
-            "{}/{}/search",
-            self.base_url_prefix, self.search_api_version
-        ))
-        .map_err(|_| Error::Api {
-            status: 400,
-            message: "Invalid URL".to_string(),
-        })?;
+        let mut url = self.build_url(&self.search_api_version, "search")?;
 
-        // Add query parameters to URL
         url.query_pairs_mut().append_pair("q", query);
         if let Some(limit) = limit {
             url.query_pairs_mut()
@@ -279,17 +298,43 @@ impl KagiClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let text = response.text().await.unwrap_or_default();
-            return Err(Error::Api {
-                status,
-                message: text,
-            });
+        Self::handle_response(response).await
+    }
+
+    /// Build the common summarizer JSON body used by both URL and text
+    /// summarization endpoints.
+    fn build_summarizer_body(
+        engine: Option<SummarizerEngine>,
+        summary_type: Option<SummaryType>,
+        target_language: Option<&str>,
+    ) -> std::result::Result<serde_json::Map<String, serde_json::Value>, serde_json::Error> {
+        let mut params = serde_json::Map::new();
+
+        if let Some(engine) = engine {
+            let engine_str = serde_json::to_string(&engine)?
+                .trim_matches('"')
+                .to_string();
+            params.insert("engine".to_string(), serde_json::Value::String(engine_str));
         }
 
-        let search_response: SearchResponse = response.json().await?;
-        Ok(search_response)
+        if let Some(summary_type) = summary_type {
+            let summary_type_str = serde_json::to_string(&summary_type)?
+                .trim_matches('"')
+                .to_string();
+            params.insert(
+                "summary_type".to_string(),
+                serde_json::Value::String(summary_type_str),
+            );
+        }
+
+        if let Some(target_language) = target_language {
+            params.insert(
+                "target_language".to_string(),
+                serde_json::Value::String(target_language.to_string()),
+            );
+        }
+
+        Ok(params)
     }
 
     /// Summarize content using Kagi's Universal Summarizer API
@@ -299,6 +344,7 @@ impl KagiClient {
     /// * `engine` - Summarization engine to use (optional, defaults to Cecil)
     /// * `summary_type` - Type of summary (optional, defaults to Summary)
     /// * `target_language` - Target language code (optional)
+    ///
     /// # Errors
     ///
     /// Returns an error if the API request fails or the response cannot be parsed.
@@ -309,58 +355,25 @@ impl KagiClient {
         summary_type: Option<SummaryType>,
         target_language: Option<&str>,
     ) -> Result<SummaryData> {
-        let mut params = serde_json::Map::new();
+        let mut params = Self::build_summarizer_body(engine, summary_type, target_language)?;
         params.insert(
             "url".to_string(),
             serde_json::Value::String(url.to_string()),
         );
 
-        if let Some(engine) = engine {
-            let engine_str = serde_json::to_string(&engine)?
-                .trim_matches('"')
-                .to_string();
-            params.insert("engine".to_string(), serde_json::Value::String(engine_str));
-        }
-
-        if let Some(summary_type) = summary_type {
-            let summary_type_str = serde_json::to_string(&summary_type)?
-                .trim_matches('"')
-                .to_string();
-            params.insert(
-                "summary_type".to_string(),
-                serde_json::Value::String(summary_type_str),
-            );
-        }
-
-        if let Some(target_language) = target_language {
-            params.insert(
-                "target_language".to_string(),
-                serde_json::Value::String(target_language.to_string()),
-            );
-        }
-
-        let url = format!(
+        let endpoint = format!(
             "{}/{}/summarize",
             self.base_url_prefix, self.summarizer_api_version
         );
         let response = self
             .client
-            .post(&url)
+            .post(&endpoint)
             .header("Authorization", format!("Bot {}", self.api_key))
             .json(&serde_json::Value::Object(params))
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let text = response.text().await.unwrap_or_default();
-            return Err(Error::Api {
-                status,
-                message: text,
-            });
-        }
-
-        let summary_response: SummaryResponse = response.json().await?;
+        let summary_response: SummaryResponse = Self::handle_response(response).await?;
         Ok(summary_response.data)
     }
 
@@ -371,6 +384,7 @@ impl KagiClient {
     /// * `engine` - Summarization engine to use (optional, defaults to Cecil)
     /// * `summary_type` - Type of summary (optional, defaults to Summary)
     /// * `target_language` - Target language code (optional)
+    ///
     /// # Errors
     ///
     /// Returns an error if the API request fails or the response cannot be parsed.
@@ -381,58 +395,25 @@ impl KagiClient {
         summary_type: Option<SummaryType>,
         target_language: Option<&str>,
     ) -> Result<SummaryData> {
-        let mut params = serde_json::Map::new();
+        let mut params = Self::build_summarizer_body(engine, summary_type, target_language)?;
         params.insert(
             "text".to_string(),
             serde_json::Value::String(text.to_string()),
         );
 
-        if let Some(engine) = engine {
-            let engine_str = serde_json::to_string(&engine)?
-                .trim_matches('"')
-                .to_string();
-            params.insert("engine".to_string(), serde_json::Value::String(engine_str));
-        }
-
-        if let Some(summary_type) = summary_type {
-            let summary_type_str = serde_json::to_string(&summary_type)?
-                .trim_matches('"')
-                .to_string();
-            params.insert(
-                "summary_type".to_string(),
-                serde_json::Value::String(summary_type_str),
-            );
-        }
-
-        if let Some(target_language) = target_language {
-            params.insert(
-                "target_language".to_string(),
-                serde_json::Value::String(target_language.to_string()),
-            );
-        }
-
-        let url = format!(
+        let endpoint = format!(
             "{}/{}/summarize",
             self.base_url_prefix, self.summarizer_api_version
         );
         let response = self
             .client
-            .post(&url)
+            .post(&endpoint)
             .header("Authorization", format!("Bot {}", self.api_key))
             .json(&serde_json::Value::Object(params))
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let text = response.text().await.unwrap_or_default();
-            return Err(Error::Api {
-                status,
-                message: text,
-            });
-        }
-
-        let summary_response: SummaryResponse = response.json().await?;
+        let summary_response: SummaryResponse = Self::handle_response(response).await?;
         Ok(summary_response.data)
     }
 
@@ -442,6 +423,7 @@ impl KagiClient {
     /// * `query` - The query to be answered
     /// * `cache` - Whether to allow cached requests & responses (optional, defaults to true)
     /// * `web_search` - Whether to perform web searches to enrich answers (optional, defaults to true)
+    ///
     /// # Errors
     ///
     /// Returns an error if the API request fails or the response cannot be parsed.
@@ -476,21 +458,11 @@ impl KagiClient {
             .client
             .post(&url)
             .header("Authorization", format!("Bot {}", self.api_key))
-            .header("Content-Type", "application/json")
             .json(&params)
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let text = response.text().await.unwrap_or_default();
-            return Err(Error::Api {
-                status,
-                message: text,
-            });
-        }
-
-        let fastgpt_response: FastGptResponse = response.json().await?;
+        let fastgpt_response: FastGptResponse = Self::handle_response(response).await?;
         Ok(fastgpt_response.data)
     }
 
@@ -499,26 +471,17 @@ impl KagiClient {
     /// # Arguments
     /// * `query` - The search query
     /// * `enrich_type` - The type of enrichment (web or news)
+    ///
     /// # Errors
     ///
     /// Returns an error if the API request fails or the response cannot be parsed.
     pub async fn enrich(&self, query: &str, enrich_type: EnrichType) -> Result<Vec<SearchResult>> {
-        // Build the URL with query parameters
         let endpoint = match enrich_type {
             EnrichType::Web => "web",
             EnrichType::News => "news",
         };
 
-        // Construct the URL with parameters
-        let mut url = url::Url::parse(&format!(
-            "{}/{}/enrich/{}",
-            self.base_url_prefix, self.enrich_api_version, endpoint
-        ))
-        .map_err(|_| Error::Api {
-            status: 400,
-            message: "Invalid URL".to_string(),
-        })?;
-
+        let mut url = self.build_url(&self.enrich_api_version, &format!("enrich/{endpoint}"))?;
         url.query_pairs_mut().append_pair("q", query);
 
         let response = self
@@ -528,16 +491,7 @@ impl KagiClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let text = response.text().await.unwrap_or_default();
-            return Err(Error::Api {
-                status,
-                message: text,
-            });
-        }
-
-        let enrich_response: EnrichResponse = response.json().await?;
+        let enrich_response: EnrichResponse = Self::handle_response(response).await?;
         Ok(enrich_response.data)
     }
 }

@@ -47,3 +47,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace
+
+      - name: Verify kagiapi publishable
+        run: cargo publish --dry-run -p kagiapi
